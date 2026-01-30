@@ -1,0 +1,1407 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>dns3000 管理后台</title>
+    <script src="tailwindcss.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#3b82f6',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .modal-overlay {
+            display: none;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+    </style>
+</head>
+
+<body class="bg-gray-100 min-h-screen">
+    <nav class="bg-white shadow-lg">
+        <div class="max-w-7xl mx-auto px-4">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center">
+                    <span class="text-xl font-bold text-gray-800">dns3000</span>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <a href="#" onclick="showTab('dashboard')" id="nav-dashboard"
+                        class="nav-link text-primary font-semibold">仪表板</a>
+                    <a href="#" onclick="showTab('rewrites')" id="nav-rewrites"
+                        class="nav-link text-gray-600 hover:text-gray-900">DNS重写</a>
+                    <a href="#" onclick="showTab('logs')" id="nav-logs"
+                        class="nav-link text-gray-600 hover:text-gray-900">查询日志</a>
+                    <a href="#" onclick="logout()"
+                        class="nav-link text-gray-600 hover:text-gray-900 border-l pl-4 ml-2">退出登录</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <main class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+        <!-- Dashboard Tab -->
+        <div id="tab-dashboard" class="space-y-6">
+            <h2 class="text-2xl font-bold">仪表板</h2>
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+                <div class="bg-white p-6 rounded-lg shadow">
+                    <h3 class="text-lg font-semibold text-gray-700">总查询</h3>
+                    <p id="stat-total" class="text-3xl font-bold text-primary mt-2">-</p>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow">
+                    <h3 class="text-lg font-semibold text-gray-700">已拦截</h3>
+                    <p id="stat-blocked" class="text-3xl font-bold text-red-500 mt-2">-</p>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow">
+                    <h3 class="text-lg font-semibold text-gray-700">已放行</h3>
+                    <p id="stat-allowed" class="text-3xl font-bold text-green-500 mt-2">-</p>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow">
+                    <h3 class="text-lg font-semibold text-gray-700">拦截率</h3>
+                    <p id="stat-percentage" class="text-3xl font-bold text-orange-500 mt-2">-</p>
+                </div>
+            </div>
+
+            <div class="bg-white p-6 rounded-lg shadow">
+                <h3 class="text-xl font-semibold mb-4">设置</h3>
+                <div class="space-y-4">
+                    <div class="flex items-center space-x-4">
+                        <label class="text-gray-700 w-40">保存查询日志数量:</label>
+                        <input type="number" id="log-count-input" class="border rounded px-3 py-2 w-48" min="100"
+                            max="50000">
+                    </div>
+                    <div class="flex items-center space-x-4">
+                        <label class="text-gray-700 w-40">规则更新间隔:</label>
+                        <input type="text" id="rule-update-interval-input" class="border rounded px-3 py-2 w-48"
+                            placeholder="如 24h, 1h30m">
+                        <span class="text-xs text-gray-500">支持格式: 24h, 1h, 30m</span>
+                    </div>
+                    <button onclick="saveSettings()"
+                        class="bg-primary text-white px-6 py-2 rounded hover:bg-blue-600 transition-colors">保存设置</button>
+                </div>
+            </div>
+
+            <!-- Devices Section -->
+            <div class="bg-white p-6 rounded-lg shadow">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-xl font-semibold">设备列表</h3>
+                    <button onclick="showAddDeviceModal()"
+                        class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">+ 添加设备</button>
+                </div>
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">名称</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">MAC</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">设备组</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="devices-table-body" class="bg-white divide-y divide-gray-200"></tbody>
+                </table>
+            </div>
+
+            <!-- Active Devices Section -->
+            <div class="bg-white p-6 rounded-lg shadow">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-xl font-semibold">活跃设备</h3>
+                    <button onclick="fetchActiveDevices()" class="text-primary hover:underline text-sm">刷新</button>
+                </div>
+                <p class="text-sm text-gray-500 mb-4">显示过去 24 小时内有请求的设备</p>
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">IP</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">MAC</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">名称</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">最后请求</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">查询次数</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="active-devices-table-body" class="bg-white divide-y divide-gray-200"></tbody>
+                </table>
+            </div>
+
+            <!-- Device Groups Section -->
+            <div class="bg-white p-6 rounded-lg shadow">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-xl font-semibold">设备组</h3>
+                    <button onclick="showAddDeviceGroupModal()"
+                        class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">+ 添加设备组</button>
+                </div>
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">名称</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">规则组 & 不生效时间表
+                            </th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="device-groups-table-body" class="bg-white divide-y divide-gray-200"></tbody>
+                </table>
+            </div>
+
+            <!-- Rule Groups Section -->
+            <div class="bg-white p-6 rounded-lg shadow">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-xl font-semibold">规则组</h3>
+                    <button onclick="showAddRuleGroupModal()"
+                        class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">+ 添加规则组</button>
+                </div>
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">名称</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">来源</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="rule-groups-table-body" class="bg-white divide-y divide-gray-200"></tbody>
+                </table>
+            </div>
+
+            <!-- Services Section -->
+            <div class="bg-white p-6 rounded-lg shadow">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-xl font-semibold">服务列表</h3>
+                    <button onclick="showAddServiceModal()"
+                        class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">+ 添加服务</button>
+                </div>
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">名称</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">类型</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="services-table-body" class="bg-white divide-y divide-gray-200"></tbody>
+                </table>
+            </div>
+
+            <!-- Upstreams Section -->
+            <div class="bg-white p-6 rounded-lg shadow">
+                <h3 class="text-xl font-semibold mb-4">上游 DNS 服务器</h3>
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">默认上游</label>
+                        <textarea id="upstreams-default" rows="3" class="w-full border rounded px-3 py-2"
+                            placeholder="每行一个，如 1.0.0.1"></textarea>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">路由规则</label>
+                        <textarea id="upstreams-rules" rows="4" class="w-full border rounded px-3 py-2"
+                            placeholder="[/domain/]upstream 或 [group]upstream"></textarea>
+                    </div>
+                    <button onclick="saveUpstreams()"
+                        class="bg-primary text-white px-4 py-2 rounded hover:bg-blue-600">保存上游配置</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Logs Tab -->
+        <div id="tab-logs" class="hidden space-y-6">
+            <h2 class="text-2xl font-bold">查询日志</h2>
+            <!-- Search Filters -->
+            <div class="bg-white p-4 rounded-lg shadow flex flex-wrap gap-4 items-center">
+                <input type="text" id="filter-domain" placeholder="域名"
+                    class="border rounded px-3 py-2 flex-1 min-w-[150px]">
+                <input type="text" id="filter-device" placeholder="设备IP/名称"
+                    class="border rounded px-3 py-2 flex-1 min-w-[150px]">
+                <select id="filter-status" class="border rounded px-3 py-2">
+                    <option value="">全部状态</option>
+                    <option value="Blocked">已拦截</option>
+                    <option value="Allowed">已处理</option>
+                    <option value="Rewritten">已重写</option>
+                </select>
+                <button onclick="fetchLogs(1)"
+                    class="bg-primary text-white px-4 py-2 rounded hover:bg-blue-600">搜索</button>
+            </div>
+            <div class="bg-white shadow overflow-hidden rounded-lg">
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">时间</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">请求</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">状态/规则</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">设备</th>
+                            </tr>
+                        </thead>
+                        <tbody id="logs-table-body" class="bg-white divide-y divide-gray-200"></tbody>
+                    </table>
+                </div>
+                <!-- Pagination -->
+                <div class="px-4 py-3 bg-gray-50 flex items-center justify-between">
+                    <span id="logs-info" class="text-sm text-gray-700"></span>
+                    <div class="flex space-x-2">
+                        <button onclick="fetchLogs(currentPage-1)" id="btn-prev"
+                            class="px-3 py-1 border rounded disabled:opacity-50">上一页</button>
+                        <span id="page-info" class="px-3 py-1"></span>
+                        <button onclick="fetchLogs(currentPage+1)" id="btn-next"
+                            class="px-3 py-1 border rounded disabled:opacity-50">下一页</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Rewrites Tab -->
+        <div id="tab-rewrites" class="hidden space-y-6">
+            <h2 class="text-2xl font-bold">DNS 重写</h2>
+            <div class="bg-white p-6 rounded-lg shadow">
+                <div class="flex flex-wrap gap-2 mb-4">
+                    <input type="text" id="rewrite-name" placeholder="域名 (如 example.com 或 *.example.com)"
+                        class="flex-1 min-w-[200px] border rounded px-3 py-2">
+                    <input type="text" id="rewrite-value" placeholder="IP 或 域名"
+                        class="flex-1 min-w-[150px] border rounded px-3 py-2">
+                    <button onclick="addRewrite()"
+                        class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">添加</button>
+                </div>
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">域名</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">响应</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="rewrites-table-body" class="bg-white divide-y divide-gray-200"></tbody>
+                </table>
+                <!-- Pagination -->
+                <div class="px-4 py-3 bg-gray-50 flex items-center justify-between border-t">
+                    <span id="rewrites-info" class="text-sm text-gray-700"></span>
+                    <div class="flex space-x-2">
+                        <button onclick="fetchRewrites(rewritePage-1)" id="rewrites-btn-prev"
+                            class="px-3 py-1 border rounded disabled:opacity-50 text-sm">上一页</button>
+                        <span id="rewrites-page-info" class="px-3 py-1 text-sm"></span>
+                        <button onclick="fetchRewrites(rewritePage+1)" id="rewrites-btn-next"
+                            class="px-3 py-1 border rounded disabled:opacity-50 text-sm">下一页</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
+    </main>
+
+    <!-- Log Details Modal -->
+    <div id="modal-log-details"
+        class="modal-overlay fixed inset-0 bg-gray-600 bg-opacity-50 items-center justify-center z-50"
+        onclick="closeModal('modal-log-details')">
+        <div class="bg-white rounded-lg shadow-xl max-w-lg w-full mx-4 p-6" onclick="event.stopPropagation()">
+            <h3 class="text-lg font-semibold mb-4">响应细节</h3>
+            <div id="modal-log-content" class="space-y-2 text-sm"></div>
+            <div class="mt-4 text-right">
+                <button onclick="closeModal('modal-log-details')"
+                    class="bg-gray-200 px-4 py-2 rounded hover:bg-gray-300">关闭</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Generic Edit Modal -->
+    <div id="modal-edit" class="modal-overlay fixed inset-0 bg-gray-600 bg-opacity-50 items-center justify-center z-50"
+        onclick="closeModal('modal-edit')">
+        <div class="bg-white rounded-lg shadow-xl max-w-lg w-full mx-4 p-6" onclick="event.stopPropagation()">
+            <h3 id="modal-edit-title" class="text-lg font-semibold mb-4">编辑</h3>
+            <div id="modal-edit-content" class="space-y-4"></div>
+            <div class="mt-4 flex justify-end space-x-2">
+                <button onclick="closeModal('modal-edit')"
+                    class="bg-gray-200 px-4 py-2 rounded hover:bg-gray-300">取消</button>
+                <button id="modal-edit-save"
+                    class="bg-primary text-white px-4 py-2 rounded hover:bg-blue-600">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Custom Alert Modal -->
+    <div id="modal-alert"
+        class="modal-overlay fixed inset-0 bg-gray-600 bg-opacity-50 items-center justify-center z-[60]"
+        onclick="closeModal('modal-alert')">
+        <div class="bg-white rounded-lg shadow-2xl max-w-sm w-full mx-4 overflow-hidden transform transition-all"
+            onclick="event.stopPropagation()">
+            <div id="modal-alert-header" class="px-6 py-4 border-b flex items-center space-x-3">
+                <div id="modal-alert-icon"
+                    class="flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center">
+                    <!-- Icon will be inserted here -->
+                </div>
+                <h3 id="modal-alert-title" class="text-lg font-bold text-gray-900">提示</h3>
+            </div>
+            <div class="px-6 py-4">
+                <p id="modal-alert-message" class="text-sm text-gray-600 leading-relaxed"></p>
+            </div>
+            <div class="px-6 py-4 bg-gray-50 flex justify-end">
+                <button onclick="closeModal('modal-alert')"
+                    class="px-4 py-2 bg-gray-900 text-white rounded-md text-sm font-medium hover:bg-gray-800 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-900">
+                    确定
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Confirm Delete Modal -->
+    <div id="modal-confirm"
+        class="modal-overlay fixed inset-0 bg-gray-600 bg-opacity-50 items-center justify-center z-50"
+        onclick="closeModal('modal-confirm')">
+        <div class="bg-white rounded-lg shadow-xl max-w-sm w-full mx-4 p-6" onclick="event.stopPropagation()">
+            <h3 class="text-lg font-semibold mb-4">确认删除</h3>
+            <p id="modal-confirm-text" class="text-gray-600 mb-4"></p>
+            <div class="flex justify-end space-x-2">
+                <button onclick="closeModal('modal-confirm')"
+                    class="bg-gray-200 px-4 py-2 rounded hover:bg-gray-300">取消</button>
+                <button id="modal-confirm-btn"
+                    class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600">删除</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentPage = 1;
+        let totalPages = 1;
+        let rewritePage = 1;
+        let rewriteTotalPages = 1;
+
+        async function logout() {
+            try {
+                await fetch('/api/auth/logout');
+                window.location.href = '/login.html';
+            } catch (e) { console.error(e); }
+        }
+
+        function showTab(tabName) {
+            document.querySelectorAll('[id^="tab-"]').forEach(el => el.classList.add('hidden'));
+            document.getElementById('tab-' + tabName).classList.remove('hidden');
+            document.querySelectorAll('.nav-link').forEach(el => {
+                el.classList.remove('text-primary', 'font-semibold');
+                el.classList.add('text-gray-600');
+            });
+            document.getElementById('nav-' + tabName).classList.add('text-primary', 'font-semibold');
+            document.getElementById('nav-' + tabName).classList.remove('text-gray-600');
+
+            if (tabName === 'dashboard') {
+                fetchStats();
+                fetchSettings();
+                fetchDevices();
+                fetchActiveDevices();
+                fetchDeviceGroups();
+                fetchRuleGroups();
+                fetchServices();
+                fetchUpstreams();
+            }
+            if (tabName === 'logs') fetchLogs(1);
+            if (tabName === 'rewrites') fetchRewrites(1);
+        }
+
+        function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+        function openModal(id) { document.getElementById(id).classList.add('active'); }
+
+        function showAlert(message, type = 'error') {
+            const titleEl = document.getElementById('modal-alert-title');
+            const messageEl = document.getElementById('modal-alert-message');
+            const headerEl = document.getElementById('modal-alert-header');
+            const iconEl = document.getElementById('modal-alert-icon');
+
+            messageEl.textContent = message;
+
+            if (type === 'error') {
+                titleEl.textContent = '操作失败';
+                headerEl.className = 'px-6 py-4 border-b flex items-center space-x-3 bg-red-50';
+                iconEl.innerHTML = `
+                    <svg class="h-6 w-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 15c-.77 1.333.192 3 1.732 3z" />
+                    </svg>`;
+                iconEl.className = 'flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center bg-red-100';
+            } else {
+                titleEl.textContent = '提示';
+                headerEl.className = 'px-6 py-4 border-b flex items-center space-x-3 bg-blue-50';
+                iconEl.innerHTML = `
+                    <svg class="h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>`;
+                iconEl.className = 'flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center bg-blue-100';
+            }
+
+            openModal('modal-alert');
+        }
+
+        // Stats
+        async function fetchStats() {
+            try {
+                const res = await fetch('/api/stats');
+                const data = await res.json();
+                document.getElementById('stat-total').textContent = data.total_queries;
+                document.getElementById('stat-blocked').textContent = data.blocked;
+                document.getElementById('stat-allowed').textContent = data.allowed;
+                document.getElementById('stat-percentage').textContent = data.blocked_percentage.toFixed(1) + '%';
+            } catch (e) { console.error(e); }
+        }
+
+        // Settings
+        async function fetchSettings() {
+            try {
+                const res = await fetch('/api/settings');
+                const data = await res.json();
+                document.getElementById('log-count-input').value = data.log_count;
+                document.getElementById('rule-update-interval-input').value = data.rule_update_interval || '24h';
+            } catch (e) { console.error(e); }
+        }
+
+        async function saveSettings() {
+            const logCount = parseInt(document.getElementById('log-count-input').value);
+            const interval = document.getElementById('rule-update-interval-input').value.trim();
+            const res = await fetch('/api/settings', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ log_count: logCount, rule_update_interval: interval })
+            });
+            if (!res.ok) {
+                showAlert('保存设置失败: ' + await res.text());
+            } else {
+                showAlert('设置已保存', 'success');
+            }
+        }
+
+        // Logs
+        async function fetchLogs(page) {
+            if (page < 1) return;
+            const domain = document.getElementById('filter-domain').value;
+            const device = document.getElementById('filter-device').value;
+            const status = document.getElementById('filter-status').value;
+            const params = new URLSearchParams({ page, limit: 50, domain, device, status });
+
+            try {
+                const res = await fetch('/api/logs?' + params);
+                const data = await res.json();
+                currentPage = data.page;
+                totalPages = Math.ceil(data.total / data.limit) || 1;
+
+                const tbody = document.getElementById('logs-table-body');
+                tbody.innerHTML = '';
+                (data.logs || []).forEach(log => {
+                    const tr = document.createElement('tr');
+                    tr.className = 'cursor-pointer hover:bg-gray-50';
+                    tr.onclick = () => showLogDetails(log);
+                    const statusText = log.status === 'Blocked' ? '已拦截' : (log.status === 'Rewritten' ? '已重写' : '已处理');
+                    const statusClass = log.status === 'Blocked' ? 'text-red-600' : (log.status === 'Rewritten' ? 'text-yellow-600' : 'text-green-600');
+                    const time = new Date(log.time);
+                    tr.innerHTML = `
+                        <td class="px-4 py-3 text-sm text-gray-500">
+                            <div>${time.toLocaleTimeString()}</div>
+                            <div class="text-xs">${time.toLocaleDateString()}</div>
+                        </td>
+                        <td class="px-4 py-3 text-sm">
+                            <div class="font-medium text-gray-900">${log.domain}</div>
+                            <div class="text-xs text-gray-500">类型: ${log.type}, ${log.protocol}</div>
+                        </td>
+                        <td class="px-4 py-3 text-sm">
+                            <div class="font-medium ${statusClass}">${statusText}</div>
+                            <div class="text-xs text-gray-500 truncate max-w-[150px]">${log.rule || log.rule_group || '-'}</div>
+                        </td>
+                        <td class="px-4 py-3 text-sm">
+                            <div class="text-gray-900">${log.device_name || log.device_ip}</div>
+                            <div class="text-xs text-gray-500">${log.device_mac || '-'}</div>
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+
+                document.getElementById('logs-info').textContent = `共 ${data.total} 条`;
+                document.getElementById('page-info').textContent = `${currentPage} / ${totalPages}`;
+                document.getElementById('btn-prev').disabled = currentPage <= 1;
+                document.getElementById('btn-next').disabled = currentPage >= totalPages;
+            } catch (e) { console.error(e); }
+        }
+
+        function showLogDetails(log) {
+            const statusText = log.status === 'Blocked' ? '已拦截' : (log.status === 'Rewritten' ? '已重写' : '已处理');
+            let html = `
+                <p><strong>状态:</strong> ${statusText}</p>
+                <p><strong>耗时:</strong> ${log.latency_ms.toFixed(2)} 毫秒</p>
+                <p><strong>域名:</strong> ${log.domain}</p>
+                <p><strong>类型:</strong> ${log.type}</p>
+                <p><strong>协议:</strong> ${log.protocol}</p>
+                <p><strong>设备:</strong> ${log.device_name || '-'} (${log.device_ip})</p>
+                <p><strong>MAC 地址:</strong> ${log.device_mac || '-'}</p>
+            `;
+            if (log.upstream) html += `<p><strong>上游 DNS:</strong> ${log.upstream}</p>`;
+            if (log.rule) html += `<p><strong>规则:</strong> <span class="text-xs bg-gray-100 px-1 py-0.5 rounded">${log.rule}</span></p>`;
+            if (log.rule_group) html += `<p><strong>规则组:</strong> ${log.rule_group}</p>`;
+            if (log.response) {
+                const parts = log.response.split('|');
+                let respHtml = `<div class="mt-2"><strong>响应:</strong><div class="mt-1 p-2 bg-gray-100 rounded border border-gray-200 font-mono text-xs whitespace-pre-wrap leading-relaxed shadow-sm">`;
+                parts.forEach(p => {
+                    respHtml += `<div>${p}</div>`;
+                });
+                respHtml += `</div></div>`;
+                html += respHtml;
+            }
+
+            document.getElementById('modal-log-content').innerHTML = html;
+            openModal('modal-log-details');
+        }
+
+        // Rewrites
+        async function fetchRewrites(page = 1) {
+            rewritePage = page;
+            try {
+                const res = await fetch(`/api/rewrites?page=${page}&limit=20`);
+                const data = await res.json();
+                const list = data.rewrites || [];
+                const total = data.total;
+                rewriteTotalPages = Math.ceil(total / 20);
+
+                const tbody = document.getElementById('rewrites-table-body');
+                tbody.innerHTML = '';
+                list.forEach(item => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td class="px-4 py-3 text-sm text-gray-900">${item.name}</td>
+                        <td class="px-4 py-3 text-sm text-gray-500">${item.value}</td>
+                        <td class="px-4 py-3 text-sm space-x-2">
+                            <button onclick="editRewrite('${item.name}', '${item.value}')" class="text-blue-600 hover:underline">编辑</button>
+                            <button onclick="confirmDelete('rewrite', '${item.name}')" class="text-red-600 hover:underline">删除</button>
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+
+                document.getElementById('rewrites-info').textContent = `共 ${total} 条`;
+                document.getElementById('rewrites-page-info').textContent = `${rewritePage} / ${rewriteTotalPages}`;
+                document.getElementById('rewrites-btn-prev').disabled = rewritePage <= 1;
+                document.getElementById('rewrites-btn-next').disabled = rewritePage >= rewriteTotalPages;
+            } catch (e) { console.error(e); }
+        }
+
+        async function addRewrite() {
+            const name = document.getElementById('rewrite-name').value.trim();
+            const value = document.getElementById('rewrite-value').value.trim();
+            if (!name || !value) return;
+            await fetch('/api/rewrites', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name, value })
+            });
+            document.getElementById('rewrite-name').value = '';
+            document.getElementById('rewrite-value').value = '';
+            fetchRewrites(1);
+        }
+
+        function editRewrite(oldName, oldValue) {
+            document.getElementById('modal-edit-title').textContent = '编辑重写';
+            document.getElementById('modal-edit-content').innerHTML = `
+                <div><label class="block text-sm font-medium mb-1">域名</label><input type="text" id="edit-name" value="${oldName}" class="w-full border rounded px-3 py-2"></div>
+                <div><label class="block text-sm font-medium mb-1">响应</label><input type="text" id="edit-value" value="${oldValue}" class="w-full border rounded px-3 py-2"></div>
+            `;
+            document.getElementById('modal-edit-save').onclick = async () => {
+                const res = await fetch('/api/rewrites', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ old_name: oldName, name: document.getElementById('edit-name').value, value: document.getElementById('edit-value').value })
+                });
+                if (!res.ok) showAlert('编辑失败: ' + await res.text());
+                closeModal('modal-edit');
+                fetchRewrites(rewritePage);
+            };
+            openModal('modal-edit');
+        }
+
+        // Devices
+        async function fetchDevices() {
+            try {
+                const res = await fetch('/api/devices');
+                const list = await res.json() || [];
+                const tbody = document.getElementById('devices-table-body');
+                tbody.innerHTML = '';
+                list.forEach(d => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td class="px-4 py-3 text-sm text-gray-900">${d.name}</td>
+                        <td class="px-4 py-3 text-sm text-gray-500">${d.mac}</td>
+                        <td class="px-4 py-3 text-sm text-gray-500">${d.device_group || 'default'}</td>
+                        <td class="px-4 py-3 text-sm space-x-2">
+                            <button onclick="editDevice('${d.mac}', '${d.name}', '${d.device_group || ''}')" class="text-blue-600 hover:underline">编辑</button>
+                            <button onclick="confirmDelete('device', '${d.mac}')" class="text-red-600 hover:underline">删除</button>
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            } catch (e) { console.error(e); }
+        }
+
+        // Active Devices
+        async function fetchActiveDevices() {
+            try {
+                const res = await fetch('/api/active-devices');
+                const list = await res.json() || [];
+                const tbody = document.getElementById('active-devices-table-body');
+                tbody.innerHTML = '';
+                if (list.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="6" class="px-4 py-3 text-sm text-gray-500 text-center">暂无活跃设备</td></tr>';
+                    return;
+                }
+                list.forEach(d => {
+                    const tr = document.createElement('tr');
+                    const lastSeen = new Date(d.last_seen);
+                    tr.innerHTML = `
+                        <td class="px-4 py-3 text-sm text-gray-900">${d.ip}</td>
+                        <td class="px-4 py-3 text-sm text-gray-500">${d.mac || '-'}</td>
+                        <td class="px-4 py-3 text-sm text-gray-500">${d.name || 'Unknown'}</td>
+                        <td class="px-4 py-3 text-sm text-gray-500">${lastSeen.toLocaleString()}</td>
+                        <td class="px-4 py-3 text-sm text-gray-500">${d.query_count}</td>
+                        <td class="px-4 py-3 text-sm">
+                            <button onclick="addActiveAsDevice('${d.mac || ''}', '${d.name || ''}', '${d.ip}')" class="text-green-600 hover:underline">添加为设备</button>
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            } catch (e) { console.error(e); }
+        }
+
+        async function addActiveAsDevice(mac, name, ip) {
+            let groups = [];
+            try {
+                const res = await fetch('/api/device-groups');
+                groups = await res.json() || [];
+            } catch (e) { console.error(e); }
+
+            document.getElementById('modal-edit-title').textContent = '添加设备';
+            document.getElementById('modal-edit-content').innerHTML = `
+                <div><label class="block text-sm font-medium mb-1">名称</label><input type="text" id="edit-name" value="${name !== 'Unknown' ? name : ''}" class="w-full border rounded px-3 py-2"></div>
+                <div><label class="block text-sm font-medium mb-1">MAC 地址</label><input type="text" id="edit-mac" class="w-full border rounded px-3 py-2"></div>
+                <div>
+                    <label class="block text-sm font-medium mb-1">设备组</label>
+                    <select id="edit-group" class="w-full border rounded px-3 py-2">
+                        <option value="">请选择设备组</option>
+                        ${groups.map(g => `<option value="${g.name}">${g.name}</option>`).join('')}
+                    </select>
+                </div>
+                <p class="text-sm text-gray-500">IP: ${ip}</p>
+            `;
+
+            // Explicitly set values to ensure they are filled correctly
+            if (mac) document.getElementById('edit-mac').value = mac;
+
+            document.getElementById('modal-edit-save').onclick = async () => {
+                const deviceGroup = document.getElementById('edit-group').value;
+                if (!deviceGroup) {
+                    showAlert('请选择设备组');
+                    return;
+                }
+                const res = await fetch('/api/devices', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name: document.getElementById('edit-name').value, mac: document.getElementById('edit-mac').value, device_group: deviceGroup })
+                });
+                if (!res.ok) showAlert('添加失败: ' + await res.text());
+                closeModal('modal-edit');
+                fetchDevices();
+                fetchActiveDevices();
+            };
+            openModal('modal-edit');
+        }
+
+        async function showAddDeviceModal() {
+            let groups = [];
+            try {
+                const res = await fetch('/api/device-groups');
+                groups = await res.json() || [];
+            } catch (e) { console.error(e); }
+
+            document.getElementById('modal-edit-title').textContent = '添加设备';
+            document.getElementById('modal-edit-content').innerHTML = `
+                <div><label class="block text-sm font-medium mb-1">名称</label><input type="text" id="edit-name" class="w-full border rounded px-3 py-2"></div>
+                <div><label class="block text-sm font-medium mb-1">MAC 地址</label><input type="text" id="edit-mac" class="w-full border rounded px-3 py-2"></div>
+                <div>
+                    <label class="block text-sm font-medium mb-1">设备组</label>
+                    <select id="edit-group" class="w-full border rounded px-3 py-2">
+                        <option value="">请选择设备组</option>
+                        ${groups.map(g => `<option value="${g.name}">${g.name}</option>`).join('')}
+                    </select>
+                </div>
+            `;
+            document.getElementById('modal-edit-save').onclick = async () => {
+                const deviceGroup = document.getElementById('edit-group').value;
+                if (!deviceGroup) {
+                    showAlert('请选择设备组');
+                    return;
+                }
+                const res = await fetch('/api/devices', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name: document.getElementById('edit-name').value, mac: document.getElementById('edit-mac').value, device_group: deviceGroup })
+                });
+                if (!res.ok) showAlert('添加失败: ' + await res.text());
+                closeModal('modal-edit');
+                fetchDevices();
+            };
+            openModal('modal-edit');
+        }
+
+        async function editDevice(oldMac, name, group) {
+            let groups = [];
+            try {
+                const res = await fetch('/api/device-groups');
+                groups = await res.json() || [];
+            } catch (e) { console.error(e); }
+
+            document.getElementById('modal-edit-title').textContent = '编辑设备';
+            document.getElementById('modal-edit-content').innerHTML = `
+                <div><label class="block text-sm font-medium mb-1">名称</label><input type="text" id="edit-name" value="${name}" class="w-full border rounded px-3 py-2"></div>
+                <div><label class="block text-sm font-medium mb-1">MAC 地址</label><input type="text" id="edit-mac" value="${oldMac}" class="w-full border rounded px-3 py-2"></div>
+                <div>
+                    <label class="block text-sm font-medium mb-1">设备组</label>
+                    <select id="edit-group" class="w-full border rounded px-3 py-2">
+                        <option value="">请选择设备组</option>
+                        ${groups.map(g => `<option value="${g.name}" ${g.name === group ? 'selected' : ''}>${g.name}</option>`).join('')}
+                    </select>
+                </div>
+            `;
+            document.getElementById('modal-edit-save').onclick = async () => {
+                const deviceGroup = document.getElementById('edit-group').value;
+                if (!deviceGroup) {
+                    alert('请选择设备组');
+                    return;
+                }
+                const res = await fetch('/api/devices', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ old_mac: oldMac, name: document.getElementById('edit-name').value, mac: document.getElementById('edit-mac').value, device_group: deviceGroup })
+                });
+                if (!res.ok) showAlert('更新失败: ' + await res.text());
+                closeModal('modal-edit');
+                fetchDevices();
+            };
+            openModal('modal-edit');
+        }
+
+        // Device Groups
+        async function fetchDeviceGroups() {
+            try {
+                const res = await fetch('/api/device-groups');
+                const list = await res.json() || [];
+                const tbody = document.getElementById('device-groups-table-body');
+                tbody.innerHTML = '';
+                list.forEach(g => {
+                    const tr = document.createElement('tr');
+                    // Build rule groups display with schedules
+                    const dayMap = { 'Mon': '周一', 'Tue': '周二', 'Wed': '周三', 'Thu': '周四', 'Fri': '周五', 'Sat': '周六', 'Sun': '周日' };
+                    let ruleGroupsHtml = '';
+                    if (g.rule_groups && g.rule_groups.length > 0) {
+                        ruleGroupsHtml = g.rule_groups.map(rg => {
+                            let scheduleHtml = '';
+                            if (rg.schedules && rg.schedules.length > 0) {
+                                const scheduleDetails = rg.schedules.map(s => {
+                                    const days = (s.days || []).map(d => dayMap[d] || d).join(', ');
+                                    const ranges = s.ranges?.join(', ') || '';
+                                    return `${days} ${ranges}`.trim();
+                                }).filter(t => t).join('; ');
+                                if (scheduleDetails) {
+                                    scheduleHtml = `<div class="text-gray-400 text-xs pl-2">不生效: ${scheduleDetails}</div>`;
+                                }
+                            }
+                            return `<div class="mb-1"><span class="inline-block bg-blue-100 text-blue-800 text-xs px-2 py-0.5 rounded">${rg.name}</span>${scheduleHtml}</div>`;
+                        }).join('');
+                    } else {
+                        ruleGroupsHtml = '<span class="text-gray-400 text-xs">无规则组</span>';
+                    }
+                    tr.innerHTML = `
+                        <td class="px-4 py-3 text-sm text-gray-900">${g.name}</td>
+                        <td class="px-4 py-3 text-sm">${ruleGroupsHtml}</td>
+                        <td class="px-4 py-3 text-sm space-x-2">
+                            <button onclick='showDeviceGroupDetails(${JSON.stringify(g)})' class="text-gray-600 hover:underline">详情</button>
+                            <button onclick='editDeviceGroup(${JSON.stringify(g)})' class="text-blue-600 hover:underline">编辑</button>
+                            <button onclick="confirmDelete('device-group', '${g.name}')" class="text-red-600 hover:underline">删除</button>
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            } catch (e) { console.error(e); }
+        }
+
+        function showAddDeviceGroupModal() {
+            editDeviceGroup({ name: '', rule_groups: [] }, true);
+        }
+
+        async function editDeviceGroup(g, isNew = false) {
+            document.getElementById('modal-edit-title').textContent = isNew ? '添加设备组' : '编辑设备组';
+
+            let currentRuleGroups = JSON.parse(JSON.stringify(g.rule_groups || []));
+            let allAvailableRuleGroups = [];
+
+            try {
+                const res = await fetch('/api/rule-groups');
+                allAvailableRuleGroups = await res.json() || [];
+            } catch (e) { console.error(e); }
+
+            const render = () => {
+                let html = `
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium mb-1">名称</label>
+                        <input type="text" id="dg-edit-name" value="${g.name}" ${isNew ? '' : 'readonly'} class="w-full border rounded px-3 py-2 ${isNew ? '' : 'bg-gray-100'}">
+                    </div>
+                    <div class="mb-2 flex justify-between items-center">
+                        <label class="block text-sm font-medium">配置规则组</label>
+                        <div class="flex space-x-2">
+                            <select id="dg-add-rg-select" class="text-sm border rounded px-2 py-1">
+                                <option value="">-- 选择规则组 --</option>
+                                ${allAvailableRuleGroups.map(arg => `<option value="${arg.name}">${arg.name}</option>`).join('')}
+                            </select>
+                            <button onclick="window.addRgToDg()" class="bg-blue-500 text-white px-2 py-1 rounded text-xs">添加</button>
+                        </div>
+                    </div>
+                    <div id="dg-rule-groups-list" class="space-y-3 max-h-[400px] overflow-y-auto border-t pt-2">
+                        ${currentRuleGroups.length === 0 ? '<p class="text-xs text-gray-500 text-center py-4">未配置规则组</p>' : ''}
+                        ${currentRuleGroups.map((rg, idx) => `
+                            <div class="border rounded p-3 bg-gray-50 relative">
+                                <div class="flex justify-between items-start mb-2">
+                                    <span class="font-medium text-sm">${idx + 1}. ${rg.name}</span>
+                                    <div class="flex space-x-1">
+                                        <button onclick="window.moveRgInDg(${idx}, -1)" class="p-1 hover:bg-gray-200 rounded" title="上移">↑</button>
+                                        <button onclick="window.moveRgInDg(${idx}, 1)" class="p-1 hover:bg-gray-200 rounded" title="下移">↓</button>
+                                        <button onclick="window.removeRgFromDg(${idx})" class="p-1 hover:bg-red-100 text-red-600 rounded" title="移除">×</button>
+                                    </div>
+                                </div>
+                                <div class="space-y-2">
+                                    <div class="flex justify-between items-center">
+                                        <label class="text-xs font-semibold text-gray-600">时间表 (在此时间内跳过该组)</label>
+                                        <button onclick="window.addScheduleToRg(${idx})" class="text-[10px] text-blue-600 hover:underline">+ 添加时间段</button>
+                                    </div>
+                                    ${(rg.schedules || []).map((s, sIdx) => `
+                                        <div class="bg-white p-2 border rounded text-xs space-y-1">
+                                            <div class="flex justify-between">
+                                                <div class="flex flex-wrap gap-1">
+                                                    ${['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(day => `
+                                                        <label class="inline-flex items-center mr-1">
+                                                            <input type="checkbox" class="mr-0.5" ${s.days?.includes(day) ? 'checked' : ''} 
+                                                                onchange="window.updateDgScheduleDay(${idx}, ${sIdx}, '${day}', this.checked)">
+                                                            ${day}
+                                                        </label>
+                                                    `).join('')}
+                                                </div>
+                                                <button onclick="window.removeDgSchedule(${idx}, ${sIdx})" class="text-red-500 hover:text-red-700">移除</button>
+                                            </div>
+                                            <div>
+                                                <input type="text" placeholder="时间段，如 10:00-12:00, 14:00-16:00" 
+                                                    value="${s.ranges?.join(', ') || ''}" 
+                                                    class="w-full border rounded px-2 py-1 text-[11px]"
+                                                    onchange="window.updateDgScheduleRanges(${idx}, ${sIdx}, this.value)">
+                                            </div>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+                document.getElementById('modal-edit-content').innerHTML = html;
+            };
+
+            const syncName = () => {
+                const el = document.getElementById('dg-edit-name');
+                if (el) g.name = el.value;
+            };
+
+            window.addRgToDg = () => {
+                syncName();
+                const select = document.getElementById('dg-add-rg-select');
+                if (!select.value) return;
+                currentRuleGroups.push({ name: select.value, schedules: [] });
+                render();
+            };
+            window.removeRgFromDg = (idx) => {
+                syncName();
+                currentRuleGroups.splice(idx, 1);
+                render();
+            };
+            window.moveRgInDg = (idx, dir) => {
+                syncName();
+                const target = idx + dir;
+                if (target < 0 || target >= currentRuleGroups.length) return;
+                const temp = currentRuleGroups[idx];
+                currentRuleGroups[idx] = currentRuleGroups[target];
+                currentRuleGroups[target] = temp;
+                render();
+            };
+            window.addScheduleToRg = (idx) => {
+                syncName();
+                if (!currentRuleGroups[idx].schedules) currentRuleGroups[idx].schedules = [];
+                currentRuleGroups[idx].schedules.push({ days: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'], ranges: [] });
+                render();
+            };
+            window.removeDgSchedule = (idx, sIdx) => {
+                syncName();
+                currentRuleGroups[idx].schedules.splice(sIdx, 1);
+                render();
+            };
+            window.updateDgScheduleDay = (idx, sIdx, day, checked) => {
+                let days = currentRuleGroups[idx].schedules[sIdx].days || [];
+                if (checked && !days.includes(day)) days.push(day);
+                else if (!checked) days = days.filter(d => d !== day);
+                currentRuleGroups[idx].schedules[sIdx].days = days;
+            };
+            window.updateDgScheduleRanges = (idx, sIdx, value) => {
+                currentRuleGroups[idx].schedules[sIdx].ranges = value.split(',').map(v => v.trim()).filter(v => v);
+            };
+
+            document.getElementById('modal-edit-save').onclick = async () => {
+                const name = document.getElementById('dg-edit-name').value.trim();
+                if (!name) { showAlert('请输入名称'); return; }
+                const method = isNew ? 'POST' : 'PUT';
+                // Check if name is already in g (for PUT)
+                const body = isNew ? { name, rule_groups: currentRuleGroups } : { old_name: g.name, name, rule_groups: currentRuleGroups };
+                const res = await fetch('/api/device-groups', {
+                    method: method,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body)
+                });
+                if (!res.ok) showAlert('保存失败: ' + await res.text());
+                closeModal('modal-edit');
+                fetchDeviceGroups();
+            };
+
+            render();
+            openModal('modal-edit');
+        }
+
+        function showDeviceGroupDetails(g) {
+            let html = `<p><strong>名称:</strong> ${g.name}</p>`;
+            if (g.rule_groups && g.rule_groups.length > 0) {
+                html += '<p class="mt-2"><strong>规则组与时间表:</strong></p><div class="space-y-3 mt-2">';
+                g.rule_groups.forEach((rg, index) => {
+                    html += `
+                        <div class="border rounded p-2 bg-gray-50">
+                            <div class="font-medium">${index + 1}. ${rg.name}</div>
+                            ${rg.schedules && rg.schedules.length > 0 ? `
+                                <ul class="text-xs text-gray-600 mt-1 list-disc ml-5">
+                                    ${rg.schedules.map(s => `
+                                        <li>[${s.days?.join(', ') || '每天'}] ${s.ranges?.join(', ') || '全天'} (生效时跳过)</li>
+                                    `).join('')}
+                                </ul>
+                            ` : '<div class="text-xs text-gray-400 mt-1 ml-5">无时间表限制</div>'}
+                        </div>
+                    `;
+                });
+                html += '</div>';
+            } else {
+                html += '<p class="text-gray-500 mt-2">无规则组</p>';
+            }
+            document.getElementById('modal-log-content').innerHTML = html;
+            document.querySelector('#modal-log-details h3').textContent = '设备组详情';
+            openModal('modal-log-details');
+        }
+
+
+
+        // Rule Groups
+        async function fetchRuleGroups() {
+            try {
+                const res = await fetch('/api/rule-groups');
+                const list = await res.json() || [];
+                const tbody = document.getElementById('rule-groups-table-body');
+                tbody.innerHTML = '';
+                list.forEach(g => {
+                    const tr = document.createElement('tr');
+                    // Build sources display
+                    let sourcesHtml = '';
+                    if (g.sources && g.sources.length > 0) {
+                        sourcesHtml = g.sources.map(src => {
+                            let detail = '';
+                            if (src.url) {
+                                // Truncate long URLs for display
+                                const truncUrl = src.url.length > 40 ? src.url.substring(0, 40) + '...' : src.url;
+                                detail = `<span class="text-gray-400 text-xs ml-1" title="${src.url}">(${truncUrl})</span>`;
+                            } else if (src.services && src.services.length > 0) {
+                                detail = `<span class="text-green-600 text-xs ml-1">(服务: ${src.services.join(', ')})</span>`;
+                            }
+                            return `<div class="mb-1"><span class="inline-block bg-purple-100 text-purple-800 text-xs px-2 py-0.5 rounded">${src.name}</span>${detail}</div>`;
+                        }).join('');
+                    } else {
+                        sourcesHtml = '<span class="text-gray-400 text-xs">无来源</span>';
+                    }
+                    tr.innerHTML = `
+                        <td class="px-4 py-3 text-sm text-gray-900">${g.name}</td>
+                        <td class="px-4 py-3 text-sm">${sourcesHtml}</td>
+                        <td class="px-4 py-3 text-sm space-x-2">
+                            <button onclick='showRuleGroupDetails(${JSON.stringify(g)})' class="text-gray-600 hover:underline">详情</button>
+                            <button onclick='editRuleGroup(${JSON.stringify(g)})' class="text-blue-600 hover:underline">编辑</button>
+                            <button onclick="confirmDelete('rule-group', '${g.name}')" class="text-red-600 hover:underline">删除</button>
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            } catch (e) { console.error(e); }
+        }
+
+        function showAddRuleGroupModal() {
+            editRuleGroup({ name: '', sources: [] }, true);
+        }
+
+        async function editRuleGroup(g, isNew = false) {
+            console.log('Opening Edit Rule Group Modal:', g, 'isNew:', isNew);
+            document.getElementById('modal-edit-title').textContent = isNew ? '添加规则组' : '编辑规则组';
+
+            let currentSources = JSON.parse(JSON.stringify(g.sources || []));
+            let allServices = [];
+
+            try {
+                const res = await fetch('/api/services');
+                allServices = await res.json() || [];
+            } catch (e) {
+                console.error('Failed to fetch services:', e);
+            }
+
+            const render = () => {
+                let html = `
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium mb-1">规则组名称</label>
+                        <input type="text" id="rg-edit-name" value="${g.name}" ${isNew ? '' : 'readonly'} 
+                            class="w-full border rounded px-3 py-2 ${isNew ? '' : 'bg-gray-100'}" placeholder="如 my-rules">
+                    </div>
+                    <div class="mb-2 flex justify-between items-center bg-gray-50 border-b pb-2">
+                        <label class="block text-sm font-bold text-gray-700">规则来源 (Sources)</label>
+                        <button onclick="window.addSourceToRg()" class="bg-blue-600 text-white px-3 py-1.5 rounded text-sm hover:bg-blue-700 shadow-sm transition-colors">+ 添加规则来源</button>
+                    </div>
+                    <div id="rg-sources-list" class="space-y-4 max-h-[450px] overflow-y-auto mt-2 pr-1">
+                        ${currentSources.length === 0 ? '<p class="text-sm text-gray-500 text-center py-8">点右上方按钮添加规则来源</p>' : ''}
+                        ${currentSources.map((src, idx) => `
+                            <div class="border rounded-lg p-3 bg-white shadow-sm relative border-l-4 ${src.hasOwnProperty('url') ? 'border-l-blue-400' : 'border-l-green-400'}">
+                                <div class="flex justify-between items-center mb-3">
+                                    <div class="w-full mr-2">
+                                        <label class="block text-[10px] font-bold text-gray-400 uppercase leading-none mb-1">
+                                            来源名称 <span class="text-red-400">(必填)</span>
+                                        </label>
+                                        <input type="text" value="${src.name || ''}" placeholder="如: 我的订阅源" 
+                                            onchange="window.updateSourceField(${idx}, 'name', this.value)"
+                                            class="text-sm font-semibold border rounded px-2 py-1 w-full focus:ring-1 focus:ring-blue-200">
+                                    </div>
+                                    <button onclick="window.removeSourceFromRg(${idx})" class="p-1.5 hover:bg-red-50 text-red-500 rounded-full transition-colors self-end" title="删除当前来源">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                            <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />
+                                        </svg>
+                                    </button>
+                                </div>
+                                <div class="flex items-center space-x-4 mb-3 border-t pt-2">
+                                    <label class="inline-flex items-center text-xs text-gray-600 cursor-pointer">
+                                        <input type="radio" name="src-type-${idx}" class="form-radio text-blue-500 h-3 w-3" 
+                                            ${src.hasOwnProperty('url') ? 'checked' : ''} onclick="window.switchSourceType(${idx}, 'url')">
+                                        <span class="ml-1 font-medium">URL 订阅从网络拉取</span>
+                                    </label>
+                                    <label class="inline-flex items-center text-xs text-gray-600 cursor-pointer">
+                                        <input type="radio" name="src-type-${idx}" class="form-radio text-green-500 h-3 w-3" 
+                                            ${!src.hasOwnProperty('url') ? 'checked' : ''} onclick="window.switchSourceType(${idx}, 'services')">
+                                        <span class="ml-1 font-medium">引用内部预定义服务</span>
+                                    </label>
+                                </div>
+                                <div>
+                                    ${src.hasOwnProperty('url') ? `
+                                        <div>
+                                            <label class="block text-[10px] font-bold text-gray-400 uppercase leading-none mb-1">订阅 URL 地址</label>
+                                            <input type="text" value="${src.url || ''}" placeholder="https://example.com/rules.txt" 
+                                                onchange="window.updateSourceField(${idx}, 'url', this.value)"
+                                                class="w-full border rounded px-3 py-2 text-xs bg-gray-50 focus:bg-white transition-all">
+                                        </div>
+                                    ` : `
+                                        <div>
+                                            <label class="block text-[10px] font-bold text-gray-400 uppercase leading-none mb-1">选择包含的服务</label>
+                                            <div class="bg-gray-50 border rounded p-2 max-h-32 overflow-y-auto mt-1">
+                                                <div class="grid grid-cols-2 gap-x-2 gap-y-1">
+                                                    ${allServices.length === 0 ? '<p class="text-[10px] text-gray-400 col-span-2 italic text-center py-2">无可用的服务</p>' : ''}
+                                                    ${allServices.map(svc => `
+                                                        <label class="inline-flex items-center text-[11px] truncate text-gray-700 hover:text-green-700 transition-colors">
+                                                            <input type="checkbox" class="rounded text-green-500 h-3 w-3 mr-1" 
+                                                                ${src.services?.includes(svc.name) ? 'checked' : ''} 
+                                                                onchange="window.toggleSourceService(${idx}, '${svc.name}', this.checked)">
+                                                            ${svc.name}
+                                                        </label>
+                                                    `).join('')}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    `}
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+                document.getElementById('modal-edit-content').innerHTML = html;
+            };
+
+            const syncName = () => {
+                const el = document.getElementById('rg-edit-name');
+                if (el) g.name = el.value;
+            };
+
+            window.addSourceToRg = () => {
+                syncName();
+                currentSources.push({ name: '', url: '' });
+                render();
+            };
+            window.removeSourceFromRg = (idx) => {
+                syncName();
+                currentSources.splice(idx, 1);
+                render();
+            };
+            window.updateSourceField = (idx, field, value) => {
+                if (currentSources[idx]) currentSources[idx][field] = value;
+            };
+            window.switchSourceType = (idx, type) => {
+                syncName();
+                if (!currentSources[idx]) return;
+                const oldName = currentSources[idx].name || '';
+                if (type === 'url') {
+                    currentSources[idx] = { name: oldName, url: '' };
+                } else {
+                    currentSources[idx] = { name: oldName, services: [] };
+                }
+                render();
+            };
+            window.toggleSourceService = (idx, svcName, checked) => {
+                if (!currentSources[idx]) return;
+                if (!currentSources[idx].services) currentSources[idx].services = [];
+                if (checked) {
+                    if (!currentSources[idx].services.includes(svcName)) currentSources[idx].services.push(svcName);
+                } else {
+                    currentSources[idx].services = currentSources[idx].services.filter(s => s !== svcName);
+                }
+            };
+
+            document.getElementById('modal-edit-save').onclick = async () => {
+                console.log('Attempting to save rule group. Current sources:', currentSources);
+                try {
+                    const groupNameInput = document.getElementById('rg-edit-name');
+                    if (!groupNameInput) throw new Error('Cannot find group name input');
+                    const name = groupNameInput.value.trim();
+                    if (!name) { showAlert('请输入规则组名称'); return; }
+
+                    // Validation: ALL sources MUST have a name
+                    for (let i = 0; i < currentSources.length; i++) {
+                        const s = currentSources[i];
+                        if (!(s.name || '').trim()) {
+                            showAlert(`第 ${i + 1} 个规则来源必须填写名称`);
+                            return;
+                        }
+                    }
+
+                    const cleanSources = currentSources.map(s => {
+                        const clean = { name: (s.name || '').trim() };
+                        if (s.hasOwnProperty('url')) {
+                            clean.url = (s.url || '').trim();
+                        } else {
+                            clean.services = s.services || [];
+                        }
+                        return clean;
+                    });
+
+                    const body = { name, sources: cleanSources };
+                    const method = isNew ? 'POST' : 'PUT';
+                    const url = isNew ? '/api/rule-groups' : '/api/rule-groups?name=' + encodeURIComponent(g.name);
+
+                    console.log('Request Method:', method, 'URL:', url, 'Body:', body);
+
+                    const res = await fetch(url, {
+                        method: method,
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(body)
+                    });
+
+                    if (!res.ok) {
+                        const errText = await res.text();
+                        console.error('Save failed:', res.status, errText);
+                        showAlert('保存失败: ' + errText);
+                        return;
+                    }
+
+                    console.log('Save successful');
+                    closeModal('modal-edit');
+                    fetchRuleGroups();
+                } catch (e) {
+                    console.error('Save Rule Group Critical Error:', e);
+                    showAlert('保存过程中发生错误: ' + e.message);
+                }
+            };
+
+            render();
+            openModal('modal-edit');
+        }
+
+        function showRuleGroupDetails(g) {
+            let html = `<p><strong>名称:</strong> ${g.name}</p>`;
+            if (g.sources && g.sources.length > 0) {
+                html += '<p class="mt-2 text-sm font-semibold text-gray-700">规则来源:</p><div class="space-y-2 mt-1">';
+                g.sources.forEach(s => {
+                    html += `
+                        <div class="border rounded p-2 bg-gray-50 text-xs">
+                            <div class="flex justify-between items-center mb-1">
+                                <span class="font-medium text-gray-900">${s.name}</span>
+                                <span class="px-1.5 py-0.5 rounded ${s.url ? 'bg-blue-100 text-blue-700' : 'bg-green-100 text-green-700'} text-[10px] uppercase font-bold">
+                                    ${s.url ? 'URL' : '服务'}
+                                </span>
+                            </div>
+                            <div class="text-gray-600 break-all">
+                                ${s.url ? s.url : (s.services?.join(', ') || '未配置服务')}
+                            </div>
+                        </div>
+                    `;
+                });
+                html += '</div>';
+            } else {
+                html += '<p class="text-gray-500 mt-2 text-sm italic">无来源配置</p>';
+            }
+            document.getElementById('modal-log-content').innerHTML = html;
+            document.querySelector('#modal-log-details h3').textContent = '规则组详情';
+            openModal('modal-log-details');
+        }
+
+
+
+        // Services
+        async function fetchServices() {
+            try {
+                const res = await fetch('/api/services');
+                const list = await res.json() || [];
+                const tbody = document.getElementById('services-table-body');
+                tbody.innerHTML = '';
+                list.forEach(s => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td class="px-4 py-3 text-sm text-gray-900">${s.name}</td>
+                        <td class="px-4 py-3 text-sm text-gray-500">${s.type || '-'}</td>
+                        <td class="px-4 py-3 text-sm space-x-2">
+                            <button onclick='showServiceDetails(${JSON.stringify(s)})' class="text-gray-600 hover:underline">详情</button>
+                            <button onclick='editService(${JSON.stringify(s)})' class="text-blue-600 hover:underline">编辑</button>
+                            <button onclick="confirmDelete('service', '${s.name}')" class="text-red-600 hover:underline">删除</button>
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            } catch (e) { console.error(e); }
+        }
+
+        function showAddServiceModal() {
+            document.getElementById('modal-edit-title').textContent = '添加服务';
+            document.getElementById('modal-edit-content').innerHTML = `
+                <div><label class="block text-sm font-medium mb-1">名称</label><input type="text" id="edit-name" class="w-full border rounded px-3 py-2"></div>
+                <div><label class="block text-sm font-medium mb-1">类型</label><input type="text" id="edit-type" class="w-full border rounded px-3 py-2" placeholder="如 game, video"></div>
+                <div><label class="block text-sm font-medium mb-1">规则内容</label><textarea id="edit-content" rows="5" class="w-full border rounded px-3 py-2" placeholder="每行一条规则"></textarea></div>
+            `;
+            document.getElementById('modal-edit-save').onclick = async () => {
+                const res = await fetch('/api/services', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name: document.getElementById('edit-name').value, type: document.getElementById('edit-type').value, content: document.getElementById('edit-content').value })
+                });
+                if (!res.ok) showAlert('添加失败: ' + await res.text());
+                closeModal('modal-edit');
+                fetchServices();
+            };
+            openModal('modal-edit');
+        }
+
+        function showServiceDetails(s) {
+            document.getElementById('modal-log-content').innerHTML = `
+                <p><strong>名称:</strong> ${s.name}</p>
+                <p><strong>类型:</strong> ${s.type || '-'}</p>
+                <p class="mt-2"><strong>规则内容:</strong></p>
+                <pre class="bg-gray-100 p-2 rounded text-xs mt-1 max-h-60 overflow-auto">${s.content || '-'}</pre>
+            `;
+            document.querySelector('#modal-log-details h3').textContent = '服务详情';
+            openModal('modal-log-details');
+        }
+
+        function editService(s) {
+            document.getElementById('modal-edit-title').textContent = '编辑服务';
+            document.getElementById('modal-edit-content').innerHTML = `
+                <div><label class="block text-sm font-medium mb-1">名称</label><input type="text" id="edit-name" value="${s.name}" class="w-full border rounded px-3 py-2"></div>
+                <div><label class="block text-sm font-medium mb-1">类型</label><input type="text" id="edit-type" value="${s.type || ''}" class="w-full border rounded px-3 py-2"></div>
+                <div><label class="block text-sm font-medium mb-1">规则内容</label><textarea id="edit-content" rows="5" class="w-full border rounded px-3 py-2">${s.content || ''}</textarea></div>
+            `;
+            document.getElementById('modal-edit-save').onclick = async () => {
+                const res = await fetch('/api/services?name=' + encodeURIComponent(s.name), {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name: document.getElementById('edit-name').value, type: document.getElementById('edit-type').value, content: document.getElementById('edit-content').value })
+                });
+                if (!res.ok) showAlert('更新失败: ' + await res.text());
+                closeModal('modal-edit');
+                fetchServices();
+            };
+            openModal('modal-edit');
+        }
+
+        // Upstreams
+        async function fetchUpstreams() {
+            try {
+                const res = await fetch('/api/upstreams');
+                const data = await res.json() || {};
+                document.getElementById('upstreams-default').value = (data.default || []).join('\n');
+                document.getElementById('upstreams-rules').value = (data.rules || []).join('\n');
+            } catch (e) { console.error(e); }
+        }
+
+        async function saveUpstreams() {
+            const defaultUp = document.getElementById('upstreams-default').value.split('\n').map(s => s.trim()).filter(s => s);
+            const rules = document.getElementById('upstreams-rules').value.split('\n').map(s => s.trim()).filter(s => s);
+            const res = await fetch('/api/upstreams', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ default: defaultUp, rules })
+            });
+            if (!res.ok) showAlert('保存上游配置失败: ' + await res.text());
+        }
+
+        // Confirm Delete
+        let deleteType = '', deleteKey = '';
+        function confirmDelete(type, key) {
+            deleteType = type;
+            deleteKey = key;
+            document.getElementById('modal-confirm-text').textContent = `确定要删除 ${key} 吗？`;
+            document.getElementById('modal-confirm-btn').onclick = doDelete;
+            openModal('modal-confirm');
+        }
+
+        async function doDelete() {
+            let url = '';
+            if (deleteType === 'rewrite') url = '/api/rewrites?name=' + encodeURIComponent(deleteKey);
+            else if (deleteType === 'device') url = '/api/devices?mac=' + encodeURIComponent(deleteKey);
+            else if (deleteType === 'device-group') url = '/api/device-groups?name=' + encodeURIComponent(deleteKey);
+            else if (deleteType === 'rule-group') url = '/api/rule-groups?name=' + encodeURIComponent(deleteKey);
+            else if (deleteType === 'service') url = '/api/services?name=' + encodeURIComponent(deleteKey);
+
+            const res = await fetch(url, { method: 'DELETE' });
+            closeModal('modal-confirm');
+            if (!res.ok) {
+                const text = await res.text();
+                showAlert('删除失败: ' + text);
+                return;
+            }
+            if (deleteType === 'rewrite') fetchRewrites(rewritePage);
+            else if (deleteType === 'device') fetchDevices();
+            else if (deleteType === 'device-group') fetchDeviceGroups();
+            else if (deleteType === 'rule-group') fetchRuleGroups();
+            else if (deleteType === 'service') fetchServices();
+        }
+
+        // Init
+        fetchStats();
+        fetchSettings();
+        fetchDevices();
+        fetchActiveDevices();
+        fetchDeviceGroups();
+        fetchRuleGroups();
+        fetchServices();
+        fetchUpstreams();
+    </script>
+</body>
+
+</html>

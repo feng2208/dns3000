@@ -324,6 +324,10 @@ func (ws *WebServer) handleDevices(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "Device group is required", 400)
 			return
 		}
+		if device.MAC == "" && device.IP == "" {
+			http.Error(w, "MAC or IP is required", 400)
+			return
+		}
 		ws.Cfg.Devices = append(ws.Cfg.Devices, device)
 		ws.Cfg.Save(ws.DataDir)
 		go ws.Reload()
@@ -333,7 +337,9 @@ func (ws *WebServer) handleDevices(w http.ResponseWriter, r *http.Request) {
 	if r.Method == "PUT" {
 		var req struct {
 			OldMAC      string `json:"old_mac"`
+			OldIP       string `json:"old_ip"`
 			Name        string `json:"name"`
+			IP          string `json:"ip"`
 			MAC         string `json:"mac"`
 			DeviceGroup string `json:"device_group"`
 		}
@@ -345,9 +351,20 @@ func (ws *WebServer) handleDevices(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "Device group is required", 400)
 			return
 		}
+		if req.MAC == "" && req.IP == "" {
+			http.Error(w, "MAC or IP is required", 400)
+			return
+		}
 		for i, d := range ws.Cfg.Devices {
-			if d.MAC == req.OldMAC {
+			match := false
+			if req.OldMAC != "" && d.MAC == req.OldMAC {
+				match = true
+			} else if req.OldMAC == "" && req.OldIP != "" && d.IP == req.OldIP {
+				match = true
+			}
+			if match {
 				ws.Cfg.Devices[i].Name = req.Name
+				ws.Cfg.Devices[i].IP = req.IP
 				ws.Cfg.Devices[i].MAC = req.MAC
 				ws.Cfg.Devices[i].DeviceGroup = req.DeviceGroup
 				break
@@ -360,9 +377,16 @@ func (ws *WebServer) handleDevices(w http.ResponseWriter, r *http.Request) {
 
 	if r.Method == "DELETE" {
 		mac := r.URL.Query().Get("mac")
+		ip := r.URL.Query().Get("ip")
 		newDevices := []config.Device{}
 		for _, d := range ws.Cfg.Devices {
-			if d.MAC != mac {
+			keep := true
+			if mac != "" && d.MAC == mac {
+				keep = false
+			} else if mac == "" && ip != "" && d.IP == ip {
+				keep = false
+			}
+			if keep {
 				newDevices = append(newDevices, d)
 			}
 		}

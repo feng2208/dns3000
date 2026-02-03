@@ -5,6 +5,7 @@ import (
 	"compress/gzip"
 	"crypto/rand"
 	"crypto/sha256"
+	"dns3000/data"
 	"dns3000/internal/config"
 	"dns3000/internal/device"
 	"dns3000/internal/dns"
@@ -14,6 +15,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"io/fs"
 	"net/http"
 	"strconv"
 	"strings"
@@ -30,9 +32,11 @@ type WebServer struct {
 	DataDir       string
 	Sessions      map[string]time.Time
 	SessionsMu    sync.Mutex
+	assetsHandler http.Handler
 }
 
 func StartWebServer(port int, cfg *config.Config, logger *logging.Logger, devMgr *device.Manager, dnsHandler *dns.Handler, dataDir string) {
+	sub, _ := fs.Sub(data.Assets, "www")
 	ws := &WebServer{
 		Cfg:           cfg,
 		Logger:        logger,
@@ -40,6 +44,7 @@ func StartWebServer(port int, cfg *config.Config, logger *logging.Logger, devMgr
 		DNSHandler:    dnsHandler,
 		DataDir:       dataDir,
 		Sessions:      make(map[string]time.Time),
+		assetsHandler: http.FileServer(http.FS(sub)),
 	}
 
 	http.HandleFunc("/", ws.gzipMiddleware(ws.handleIndex))
@@ -98,10 +103,11 @@ func (ws *WebServer) handleIndex(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		http.ServeFile(w, r, "data/www/index.html")
+		r.URL.Path = "/"
+		ws.assetsHandler.ServeHTTP(w, r)
 		return
 	}
-	http.ServeFile(w, r, "data/www"+r.URL.Path)
+	ws.assetsHandler.ServeHTTP(w, r)
 }
 
 func (ws *WebServer) handleLogs(w http.ResponseWriter, r *http.Request) {

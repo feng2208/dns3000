@@ -509,7 +509,7 @@
                             <div class="text-xs text-gray-500 truncate max-w-[150px]">${log.rule || log.rule_group || '-'}</div>
                         </td>
                         <td class="px-4 py-3 text-sm">
-                            <div class="text-gray-900">${log.device_name || log.device_ip}</div>
+                            <div class="text-gray-900">${log.device_name ? (log.device_name + ' <span class="text-gray-500 text-xs">(' + log.device_ip + ')</span>') : log.device_ip}</div>
                             <div class="text-xs text-gray-500">${log.device_mac || '-'}</div>
                         </td>
                     `;
@@ -531,7 +531,7 @@
                 <p><strong>域名:</strong> ${log.domain}</p>
                 <p><strong>类型:</strong> ${log.type}</p>
                 <p><strong>协议:</strong> ${log.protocol}</p>
-                <p><strong>设备:</strong> ${log.device_name || '-'} (${log.device_ip})</p>
+                <p><strong>设备:</strong> ${log.device_name ? (log.device_name + ' (' + log.device_ip + ')') : log.device_ip}</p>
                 <p><strong>MAC 地址:</strong> ${log.device_mac || '-'}</p>
             `;
             if (log.upstream) html += `<p><strong>上游 DNS:</strong> ${log.upstream}</p>`;

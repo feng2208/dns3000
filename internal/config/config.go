@@ -33,6 +33,7 @@ type UpstreamsConfig struct {
 
 type Device struct {
 	Name        string `yaml:"name" json:"name"`
+	IP          string `yaml:"ip" json:"ip"`
 	MAC         string `yaml:"mac" json:"mac"`
 	DeviceGroup string `yaml:"device_group" json:"device_group"`
 }

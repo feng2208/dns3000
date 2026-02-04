@@ -53,7 +53,7 @@
         <!-- Dashboard Tab -->
         <div id="tab-dashboard" class="space-y-6">
             <h2 class="text-2xl font-bold">仪表板</h2>
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
                 <div class="bg-white p-6 rounded-lg shadow">
                     <h3 class="text-lg font-semibold text-gray-700">总查询</h3>
                     <p id="stat-total" class="text-3xl font-bold text-primary mt-2">-</p>
@@ -61,6 +61,10 @@
                 <div class="bg-white p-6 rounded-lg shadow">
                     <h3 class="text-lg font-semibold text-gray-700">已拦截</h3>
                     <p id="stat-blocked" class="text-3xl font-bold text-red-500 mt-2">-</p>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow">
+                    <h3 class="text-lg font-semibold text-gray-700">已重写</h3>
+                    <p id="stat-rewritten" class="text-3xl font-bold text-yellow-500 mt-2">-</p>
                 </div>
                 <div class="bg-white p-6 rounded-lg shadow">
                     <h3 class="text-lg font-semibold text-gray-700">已放行</h3>
@@ -71,6 +75,8 @@
                     <p id="stat-percentage" class="text-3xl font-bold text-orange-500 mt-2">-</p>
                 </div>
             </div>
+
+
 
             <div class="bg-white p-6 rounded-lg shadow">
                 <h3 class="text-xl font-semibold mb-4">设置</h3>
@@ -507,7 +513,7 @@
                         </td>
                         <td class="px-4 py-3 text-sm">
                             <div class="font-medium ${statusClass}">${statusText}</div>
-                            <div class="text-xs text-gray-500 truncate max-w-[150px]">${log.rule || log.rule_group || '-'}</div>
+                            <div class="text-xs text-gray-500 truncate max-w-[150px]">${log.rule || log.rule_group || (log.latency_ms !== undefined ? log.latency_ms.toFixed(2) + ' ms' : '-')}</div>
                         </td>
                         <td class="px-4 py-3 text-sm">
     <div class="text-gray-900">${log.device_name || '-'}</div>
@@ -1424,6 +1430,149 @@
             else if (deleteType === 'device-group') fetchDeviceGroups();
             else if (deleteType === 'rule-group') fetchRuleGroups();
             else if (deleteType === 'service') fetchServices();
+        }
+
+
+        // Stats
+        async function fetchStats() {
+            try {
+                const res = await fetch('/api/stats');
+                const data = await res.json();
+                document.getElementById('stat-total').textContent = data.total_queries;
+                document.getElementById('stat-blocked').textContent = data.blocked;
+                document.getElementById('stat-rewritten').textContent = data.rewritten;
+                document.getElementById('stat-allowed').textContent = data.allowed;
+                document.getElementById('stat-percentage').textContent = data.blocked_percentage.toFixed(1) + '%';
+            } catch (e) { console.error(e); }
+        }
+
+        // Settings
+        async function fetchSettings() {
+            try {
+                const res = await fetch('/api/settings');
+                const data = await res.json();
+                document.getElementById('log-count-input').value = data.log_count;
+                document.getElementById('rule-update-interval-input').value = data.rule_update_interval;
+            } catch (e) { console.error(e); }
+        }
+
+        async function saveSettings() {
+            const logCount = parseInt(document.getElementById('log-count-input').value);
+            const interval = document.getElementById('rule-update-interval-input').value;
+            const res = await fetch('/api/settings', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ log_count: logCount, rule_update_interval: interval })
+            });
+            if (res.ok) showAlert('设置已保存', 'success');
+            else showAlert('保存失败: ' + await res.text());
+        }
+
+        // Devices
+        async function fetchDevices() {
+            try {
+                const res = await fetch('/api/devices');
+                const list = await res.json() || [];
+                const tbody = document.getElementById('devices-table-body');
+                tbody.innerHTML = '';
+                list.forEach(d => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td class="px-4 py-3 text-sm text-gray-900">${d.name}</td>
+                        <td class="px-4 py-3 text-sm text-gray-500">${d.ip}</td>
+                        <td class="px-4 py-3 text-sm text-gray-500">${d.mac}</td>
+                        <td class="px-4 py-3 text-sm text-gray-500">${d.device_group}</td>
+                        <td class="px-4 py-3 text-sm space-x-2">
+                            <button onclick='editDevice(${JSON.stringify(d)})' class="text-blue-600 hover:underline">编辑</button>
+                            <button onclick="confirmDelete('device', '${d.mac}', '${d.ip}')" class="text-red-600 hover:underline">删除</button>
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            } catch (e) { console.error(e); }
+        }
+
+        function showAddDeviceModal() {
+            editDevice({ name: '', ip: '', mac: '', device_group: '' }, true);
+        }
+
+        async function editDevice(d, isNew = false) {
+            document.getElementById('modal-edit-title').textContent = isNew ? '添加设备' : '编辑设备';
+
+            let groups = [];
+            try {
+                const res = await fetch('/api/device-groups');
+                groups = await res.json() || [];
+            } catch (e) { }
+
+            let groupOptions = groups.map(g => `<option value="${g.name}" ${d.device_group === g.name ? 'selected' : ''}>${g.name}</option>`).join('');
+
+            document.getElementById('modal-edit-content').innerHTML = `
+                <div class="space-y-4">
+                    <div><label class="block text-sm font-medium mb-1">名称</label><input type="text" id="dev-name" value="${d.name}" class="w-full border rounded px-3 py-2"></div>
+                    <div><label class="block text-sm font-medium mb-1">IP</label><input type="text" id="dev-ip" value="${d.ip}" class="w-full border rounded px-3 py-2"></div>
+                    <div><label class="block text-sm font-medium mb-1">MAC</label><input type="text" id="dev-mac" value="${d.mac}" class="w-full border rounded px-3 py-2"></div>
+                    <div><label class="block text-sm font-medium mb-1">设备组</label><select id="dev-group" class="w-full border rounded px-3 py-2"><option value="">-- 选择设备组 --</option>${groupOptions}</select></div>
+                </div>
+            `;
+
+            document.getElementById('modal-edit-save').onclick = async () => {
+                const body = {
+                    name: document.getElementById('dev-name').value,
+                    ip: document.getElementById('dev-ip').value,
+                    mac: document.getElementById('dev-mac').value,
+                    device_group: document.getElementById('dev-group').value
+                };
+                if (!isNew) {
+                    body.old_mac = d.mac;
+                    body.old_ip = d.ip;
+                }
+
+                const method = isNew ? 'POST' : 'PUT';
+                const res = await fetch('/api/devices', {
+                    method: method,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body)
+                });
+
+                if (!res.ok) showAlert('操作失败: ' + await res.text());
+                else {
+                    closeModal('modal-edit');
+                    fetchDevices();
+                }
+            };
+            openModal('modal-edit');
+        }
+
+        async function fetchActiveDevices() {
+            try {
+                const res = await fetch('/api/active-devices');
+                const list = await res.json() || [];
+                const tbody = document.getElementById('active-devices-table-body');
+                tbody.innerHTML = '';
+                list.forEach(d => {
+                    const lastReq = d.last_seen ? new Date(d.last_seen).toLocaleString() : '-';
+                    const ip = d.ip || '';
+                    const mac = d.mac || '';
+                    const name = d.name || '';
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td class="px-4 py-3 text-sm text-gray-900">${ip}</td>
+                        <td class="px-4 py-3 text-sm text-gray-500">${mac}</td>
+                        <td class="px-4 py-3 text-sm text-gray-500">${name}</td>
+                        <td class="px-4 py-3 text-sm text-gray-500">${lastReq}</td>
+                        <td class="px-4 py-3 text-sm text-gray-500">${d.query_count || 0}</td>
+                        <td class="px-4 py-3 text-sm space-x-2">
+                             <button onclick='addToDevices("${ip}", "${mac}", "${name}")' class="text-blue-600 hover:underline">添加到列表</button>
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            } catch (e) { console.error(e); }
+        }
+
+        function addToDevices(ip, mac, name) {
+            editDevice({ name: name, ip: ip, mac: mac, device_group: '' }, true);
         }
 
         // Init

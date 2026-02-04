@@ -164,27 +164,21 @@ func (ws *WebServer) handleLogs(w http.ResponseWriter, r *http.Request) {
 }
 
 func (ws *WebServer) handleStats(w http.ResponseWriter, r *http.Request) {
-	allLogs := ws.Logger.GetLogs(0, 10000)
-	total := len(allLogs)
-	blocked := 0
-	for _, log := range allLogs {
-		if log.Status == "Blocked" {
-			blocked++
-		}
-	}
+	stats := ws.Logger.GetStats()
 	percentage := 0.0
-	if total > 0 {
-		percentage = float64(blocked) / float64(total) * 100
+	if stats.TotalQueries > 0 {
+		percentage = float64(stats.Blocked) / float64(stats.TotalQueries) * 100
 	}
 
-	stats := map[string]interface{}{
-		"total_queries":      total,
-		"blocked":            blocked,
-		"allowed":            total - blocked,
+	resp := map[string]interface{}{
+		"total_queries":      stats.TotalQueries,
+		"blocked":            stats.Blocked,
+		"allowed":            stats.Allowed,
+		"rewritten":          stats.Rewritten,
 		"blocked_percentage": percentage,
 	}
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(stats)
+	json.NewEncoder(w).Encode(resp)
 }
 
 func (ws *WebServer) handleSettings(w http.ResponseWriter, r *http.Request) {

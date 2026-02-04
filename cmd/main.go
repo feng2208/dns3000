@@ -51,6 +51,10 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to init logger: %v", err)
 	}
+	statsPath := filepath.Join(*dataDir, "stats.json")
+	if err := logger.LoadStats(statsPath); err != nil {
+		log.Printf("Warning: Failed to load stats: %v", err)
+	}
 
 	cache := dns.NewCache()
 
@@ -91,5 +95,11 @@ func main() {
 		log.Printf("Failed to save logs: %v", err)
 	} else {
 		log.Println("Logs saved.")
+	}
+
+	if err := logger.SaveStats(statsPath); err != nil {
+		log.Printf("Failed to save stats: %v", err)
+	} else {
+		log.Println("Stats saved.")
 	}
 }

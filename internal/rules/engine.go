@@ -1,6 +1,7 @@
 package rules
 
 import (
+	"net"
 	"strings"
 	"sync"
 )
@@ -70,20 +71,6 @@ func (e *Engine) Match(domain string, info RequestInfo) *Rule {
 
 	// 1. Check Hosts (Exact)
 	if ip, ok := e.hostsRules[domain]; ok {
-		// Hosts matches are blocking/rewrite by definition?
-		// "Blocks example.com by responding with ..."
-		// Usually hosts files are basic blocking or redirections.
-		// Lets treat as a basic Block/Rewrite rule.
-		// Can they be whitelisted?
-		// AdGuard/Hosts usually implies simple static mapping.
-		// But in this architecture, we might want to allow whitelisting even hosts?
-		// For now, return immediately to be safe/fast, or treat as a candidate?
-		// User requirement 1.2.3.4 example.org -> respond with 1.2.3.4
-		// 0.0.0.0 example.com -> Block
-		// Let's assume high priority for hosts rules, but subject to Whitelist?
-		// Currently `hostsRules` is a simple map.
-		// Let's keep existing behavior: Hosts wins immediately (or treat as specific block).
-		// Given they are "Basic examples", let's return immediately.
 		return &Rule{Type: RuleTypeHosts, Pattern: domain, IP: ip}
 	}
 
@@ -100,42 +87,55 @@ func (e *Engine) Match(domain string, info RequestInfo) *Rule {
 		}
 	}
 
-	// 3. Filter Candidates by Modifiers
-	var validRules []*Rule
-	for _, r := range candidates {
-		if e.checkModifiers(r, info) {
-			validRules = append(validRules, r)
-		}
-	}
-
-	if len(validRules) == 0 {
-		return nil
-	}
-
-	// 4. Select Best Rule
+	// 3. Select Best Rule
 	// Priority:
-	// 1. Important Block (disables whitelist)
-	// 2. Whitelist (disables normal block)
+	// 1. Important Block
+	// 2. Whitelist
 	// 3. Block
+	//
+	// Tie-breaking:
+	// 1. Client Specificity (Exact > CIDR > Generic)
+	// 2. Domain Specificity (Implicit by processing order: Child overrides Parent if scores equal)
 
 	var bestImportantBlock *Rule
+	var bestImportantScore int
+
 	var bestWhitelist *Rule
+	var bestWhitelistScore int
+
 	var bestBlock *Rule
+	var bestBlockScore int
 
-	// Iterate in reverse to find "most specific" first?
-	// Trie returns [Root ... Leaf]. Last is most specific.
-	// We want the most specific matching rule of each type.
-	// So iterating forwards update "bestX" will leave us with the last (most specific).
+	for _, r := range candidates {
+		matched, score := e.checkModifiers(r, info)
+		if !matched {
+			continue
+		}
 
-	for _, r := range validRules {
 		if r.IsWhitelist {
-			bestWhitelist = r
-		} else {
-			// Blocking rule
-			if _, important := r.Modifiers["important"]; important {
-				bestImportantBlock = r
+			// Whitelist Logic
+			if bestWhitelist == nil || score >= bestWhitelistScore {
+				bestWhitelist = r
+				bestWhitelistScore = score
 			}
-			bestBlock = r
+		} else {
+			// Block/Rewrite Logic
+			isImportant := false
+			if _, ok := r.Modifiers["important"]; ok {
+				isImportant = true
+			}
+
+			if isImportant {
+				if bestImportantBlock == nil || score >= bestImportantScore {
+					bestImportantBlock = r
+					bestImportantScore = score
+				}
+			} else {
+				if bestBlock == nil || score >= bestBlockScore {
+					bestBlock = r
+					bestBlockScore = score
+				}
+			}
 		}
 	}
 
@@ -149,10 +149,17 @@ func (e *Engine) Match(domain string, info RequestInfo) *Rule {
 	return bestBlock
 }
 
-func (e *Engine) checkModifiers(r *Rule, info RequestInfo) bool {
+// checkModifiers returns matched bool and a specificity score.
+// Score:
+// 0: Generic match (no client modifier)
+// 1000: Exact Client IP/MAC match
+// 1-128: CIDR match (Mask size, larger is more specific) (for IPv4 max 32, IPv6 128)
+func (e *Engine) checkModifiers(r *Rule, info RequestInfo) (bool, int) {
 	if len(r.Modifiers) == 0 {
-		return true
+		return true, 0
 	}
+
+	score := 0
 
 	// 1. client
 	// client=IP,name,MAC... | ~client (negation)
@@ -162,6 +169,7 @@ func (e *Engine) checkModifiers(r *Rule, info RequestInfo) bool {
 
 		matched := false
 		hasPositive := false
+		maxPartScore := 0
 
 		for _, p := range parts {
 			p = strings.TrimSpace(p)
@@ -174,45 +182,56 @@ func (e *Engine) checkModifiers(r *Rule, info RequestInfo) bool {
 			}
 
 			// Check match
-			isMatch := (target == info.ClientIP || target == info.ClientMAC || target == info.ClientName)
+			var isMatch bool
+			var currentScore int
+
+			// 1. Exact match
+			if target == info.ClientIP || target == info.ClientMAC || target == info.ClientName {
+				isMatch = true
+				currentScore = 1000
+			} else if strings.Contains(target, "/") {
+				// 2. CIDR match
+				_, ipNet, err := net.ParseCIDR(target)
+				if err == nil {
+					clientIP := net.ParseIP(info.ClientIP)
+					if clientIP != nil && ipNet.Contains(clientIP) {
+						isMatch = true
+						ones, _ := ipNet.Mask.Size()
+						currentScore = ones
+					}
+				}
+			}
 
 			if isMatch {
 				if negate {
-					return false // Explicitly excluded
+					return false, 0 // Explicitly excluded
 				}
 				matched = true
+				if currentScore > maxPartScore {
+					maxPartScore = currentScore
+				}
 			}
 		}
 
 		// If we have positive requirements and none matched, return false
 		if hasPositive && !matched {
-			return false
+			return false, 0
 		}
+
 		// If only negative requirements existed (e.g. ~1.2.3.4), and we didn't return false above,
 		// it means we are allowed (implicit allow for others).
+		// In that case, we use the accumulated score (which is 0).
+		score = maxPartScore
 	}
 
 	// 2. denyallow
 	// $denyallow=domain1|domain2
-	// If request domain matches any in list, rule does NOT match.
 	if val, ok := r.Modifiers["denyallow"]; ok {
 		parts := strings.Split(val, "|")
 		for _, d := range parts {
 			d = strings.TrimSpace(d)
-			// Exact match or subdomain?
-			// "If a domain matches the rule pattern but is also present in the denyallow list"
-			// Usually denyallow implies exact matching of the exclusion?
-			// AdGuard docs: "ex: ||example.com^$denyallow=sub.example.com"
-			// If query is sub.example.com -> denied by rule? No, ALLOWED by ignore.
-			// Matching: domain == d or domain.HasSuffix("."+d) ?
-			// Usually it's domain matching logic.
-			// Let's assume exact match for simplicity as per common adblock logic usage,
-			// potentially suffix if d starts with dot?
-			// AdGuard implementation uses similar matching logic to rules.
-			// Let's do exact match + check if d is suffix?
-			// "sub.example.com" in denyallow matches "sub.example.com".
 			if info.Domain == d || strings.HasSuffix(info.Domain, "."+d) {
-				return false
+				return false, 0
 			}
 		}
 	}
@@ -220,18 +239,10 @@ func (e *Engine) checkModifiers(r *Rule, info RequestInfo) bool {
 	// 3. dnstype
 	// $dnstype=A|AAAA
 	if val, ok := r.Modifiers["dnstype"]; ok {
-		// e.g. A
-		// If rule says $dnstype=aaaa, and query is A, skip
 		if !strings.EqualFold(val, info.QType) && !strings.Contains(strings.ToUpper(val), info.QType) {
-			// Simple string check; Robust would parse `|`
-			return false
+			return false, 0
 		}
 	}
 
-	// 3. important (handled by priority logic in Handler, usually)
-	// But engine just returns Match. Handler decides if Whitelist overrides Block.
-	// If this rule is Important Block, it might override Whitelist?
-	// AdGuard: Important rules > Whitelist > Block.
-
-	return true
+	return true, score
 }

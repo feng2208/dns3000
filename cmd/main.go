@@ -87,6 +87,7 @@ func main() {
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
 	<-sigChan
 
+	log.Println("")
 	log.Println("Shutting down...")
 
 	// Save Logs

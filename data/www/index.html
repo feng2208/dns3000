@@ -377,7 +377,12 @@
         let currentPage = 1;
         let totalPages = 1;
         let rewritePage = 1;
+
         let rewriteTotalPages = 1;
+
+        // Global data stores to avoid passing JSON in HTML attributes
+        let allDeviceGroups = [];
+        let allRuleGroups = [];
 
         async function logout() {
             try {
@@ -822,9 +827,10 @@
             try {
                 const res = await fetch('/api/device-groups');
                 const list = await res.json() || [];
+                allDeviceGroups = list; // Store globally
                 const tbody = document.getElementById('device-groups-table-body');
                 tbody.innerHTML = '';
-                list.forEach(g => {
+                list.forEach((g, index) => {
                     const tr = document.createElement('tr');
                     // Build rule groups display with schedules
                     const dayMap = { 'Mon': '周一', 'Tue': '周二', 'Wed': '周三', 'Thu': '周四', 'Fri': '周五', 'Sat': '周六', 'Sun': '周日' };
@@ -851,8 +857,9 @@
                         <td class="px-4 py-3 text-sm text-gray-900">${g.name}</td>
                         <td class="px-4 py-3 text-sm">${ruleGroupsHtml}</td>
                         <td class="px-4 py-3 text-sm space-x-2">
-                            <button onclick='showDeviceGroupDetails(${JSON.stringify(g)})' class="text-gray-600 hover:underline">详情</button>
-                            <button onclick='editDeviceGroup(${JSON.stringify(g)})' class="text-blue-600 hover:underline">编辑</button>
+                            <button onclick='showDeviceGroupDetails(${index})' class="text-gray-600 hover:underline">详情</button>
+                            <button onclick='editDeviceGroup(${index})' class="text-blue-600 hover:underline">编辑</button>
+
                             <button onclick="confirmDelete('device-group', '${g.name}')" class="text-red-600 hover:underline">删除</button>
                         </td>
                     `;
@@ -865,7 +872,9 @@
             editDeviceGroup({ name: '', rule_groups: [] }, true);
         }
 
-        async function editDeviceGroup(g, isNew = false) {
+        async function editDeviceGroup(arg, isNew = false) {
+            const g = (typeof arg === 'number') ? allDeviceGroups[arg] : arg;
+
             document.getElementById('modal-edit-title').textContent = isNew ? '添加设备组' : '编辑设备组';
 
             let currentRuleGroups = JSON.parse(JSON.stringify(g.rule_groups || []));
@@ -1006,7 +1015,8 @@
             openModal('modal-edit');
         }
 
-        function showDeviceGroupDetails(g) {
+        function showDeviceGroupDetails(arg) {
+            const g = (typeof arg === 'number') ? allDeviceGroups[arg] : arg;
             let html = `<p><strong>名称:</strong> ${g.name}</p>`;
             if (g.rule_groups && g.rule_groups.length > 0) {
                 html += '<p class="mt-2"><strong>规则组与时间表:</strong></p><div class="space-y-3 mt-2">';
@@ -1040,9 +1050,10 @@
             try {
                 const res = await fetch('/api/rule-groups');
                 const list = await res.json() || [];
+                allRuleGroups = list; // Store globally
                 const tbody = document.getElementById('rule-groups-table-body');
                 tbody.innerHTML = '';
-                list.forEach(g => {
+                list.forEach((g, index) => {
                     const tr = document.createElement('tr');
                     // Build sources display
                     let sourcesHtml = '';
@@ -1065,8 +1076,8 @@
                         <td class="px-4 py-3 text-sm text-gray-900">${g.name}</td>
                         <td class="px-4 py-3 text-sm">${sourcesHtml}</td>
                         <td class="px-4 py-3 text-sm space-x-2">
-                            <button onclick='showRuleGroupDetails(${JSON.stringify(g)})' class="text-gray-600 hover:underline">详情</button>
-                            <button onclick='editRuleGroup(${JSON.stringify(g)})' class="text-blue-600 hover:underline">编辑</button>
+                            <button onclick='showRuleGroupDetails(${index})' class="text-gray-600 hover:underline">详情</button>
+                            <button onclick='editRuleGroup(${index})' class="text-blue-600 hover:underline">编辑</button>
                             <button onclick="confirmDelete('rule-group', '${g.name}')" class="text-red-600 hover:underline">删除</button>
                         </td>
                     `;
@@ -1079,7 +1090,8 @@
             editRuleGroup({ name: '', sources: [] }, true);
         }
 
-        async function editRuleGroup(g, isNew = false) {
+        async function editRuleGroup(arg, isNew = false) {
+            const g = (typeof arg === 'number') ? allRuleGroups[arg] : arg;
             console.log('Opening Edit Rule Group Modal:', g, 'isNew:', isNew);
             document.getElementById('modal-edit-title').textContent = isNew ? '添加规则组' : '编辑规则组';
 
@@ -1267,7 +1279,8 @@
             openModal('modal-edit');
         }
 
-        function showRuleGroupDetails(g) {
+        function showRuleGroupDetails(arg) {
+            const g = (typeof arg === 'number') ? allRuleGroups[arg] : arg;
             let html = `<p><strong>名称:</strong> ${g.name}</p>`;
             if (g.sources && g.sources.length > 0) {
                 html += '<p class="mt-2 text-sm font-semibold text-gray-700">规则来源:</p><div class="space-y-2 mt-1">';
@@ -1390,6 +1403,7 @@
                 body: JSON.stringify({ default: defaultUp, rules })
             });
             if (!res.ok) showAlert('保存上游配置失败: ' + await res.text());
+            else showAlert('保存上游配置成功', 'success');
         }
 
         // Confirm Delete

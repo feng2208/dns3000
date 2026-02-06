@@ -14,20 +14,22 @@ import (
 )
 
 type Manager struct {
-	cfg         *config.Config
-	dataDir     string
-	engines     map[string]*Engine // Map rule group name to Engine
-	lastSources map[string][]config.Source
-	client      *http.Client
-	mu          sync.RWMutex
+	cfg          *config.Config
+	dataDir      string
+	engines      map[string]*Engine // Map rule group name to Engine
+	lastSources  map[string][]config.Source
+	lastServices map[string]string // Map service name to content hash or raw content
+	client       *http.Client
+	mu           sync.RWMutex
 }
 
 func NewManager(cfg *config.Config, dataDir string) *Manager {
 	return &Manager{
-		cfg:         cfg,
-		dataDir:     dataDir,
-		engines:     make(map[string]*Engine),
-		lastSources: make(map[string][]config.Source),
+		cfg:          cfg,
+		dataDir:      dataDir,
+		engines:      make(map[string]*Engine),
+		lastSources:  make(map[string][]config.Source),
+		lastServices: make(map[string]string),
 		client: &http.Client{
 			Timeout: 20 * time.Second,
 		},
@@ -41,6 +43,9 @@ func (m *Manager) Init() error {
 		if err := m.reloadGroup(rg, false); err != nil {
 			fmt.Printf("Error initializing rule group %s: %v\n", rg.Name, err)
 		}
+	}
+	for _, svc := range m.cfg.Services {
+		m.lastServices[svc.Name] = svc.Content
 	}
 	m.cleanupCache()
 	return nil
@@ -103,6 +108,8 @@ func (m *Manager) checkGroupUpdate(rg config.RuleGroup) {
 func (m *Manager) loadGroup(rg config.RuleGroup, forceUpdate bool) (*Engine, error) {
 	engine := NewEngine()
 
+	fmt.Printf("[%s] Loading rule group: %s\n", time.Now().Format("2006-01-02 15:04:05"), rg.Name)
+
 	for _, src := range rg.Sources {
 		if src.URL != "" {
 			rules, err := m.loadOrFetchRule(src, forceUpdate)
@@ -112,6 +119,7 @@ func (m *Manager) loadGroup(rg config.RuleGroup, forceUpdate bool) (*Engine, err
 			for _, r := range rules {
 				engine.AddRule(r)
 			}
+			fmt.Printf("[%s]   Loaded source: %s (%d rules)\n", time.Now().Format("2006-01-02 15:04:05"), src.Name, len(rules))
 		}
 		if len(src.Services) > 0 {
 			for _, svcName := range src.Services {
@@ -129,10 +137,13 @@ func (m *Manager) loadGroup(rg config.RuleGroup, forceUpdate bool) (*Engine, err
 					for _, r := range rules {
 						engine.AddRule(r)
 					}
+					fmt.Printf("[%s]   Loaded service: %s (%d rules)\n", time.Now().Format("2006-01-02 15:04:05"), svcName, len(rules))
 				}
 			}
 		}
 	}
+
+	fmt.Printf("\n")
 	return engine, nil
 }
 
@@ -170,10 +181,48 @@ func (m *Manager) Reload(cfg *config.Config) {
 		oldSources []config.Source
 		exists     bool
 	}
+
+	// Identify changed services
+	changedServices := make(map[string]bool)
+	for _, svc := range cfg.Services {
+		if oldContent, ok := m.lastServices[svc.Name]; !ok || oldContent != svc.Content {
+			changedServices[svc.Name] = true
+			m.lastServices[svc.Name] = svc.Content
+		}
+	}
+	// Also check for deleted services (though less critical for reload unless used)
+	for name := range m.lastServices {
+		found := false
+		for _, svc := range cfg.Services {
+			if svc.Name == name {
+				found = true
+				break
+			}
+		}
+		if !found {
+			delete(m.lastServices, name)
+		}
+	}
+
 	var reloadQueue []groupToReload
 	for _, rg := range cfg.RuleGroups {
 		oldSources, exists := m.lastSources[rg.Name]
-		if !exists || !m.sourcesEqual(oldSources, rg.Sources) {
+
+		// Check if any source uses a changed service
+		serviceChanged := false
+		for _, src := range rg.Sources {
+			for _, svcName := range src.Services {
+				if changedServices[svcName] {
+					serviceChanged = true
+					break
+				}
+			}
+			if serviceChanged {
+				break
+			}
+		}
+
+		if !exists || !m.sourcesEqual(oldSources, rg.Sources) || serviceChanged {
 			reloadQueue = append(reloadQueue, groupToReload{rg: rg, oldSources: oldSources, exists: exists})
 		}
 	}

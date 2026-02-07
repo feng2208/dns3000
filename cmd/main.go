@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"log"
 	"os"
 	"os/signal"
@@ -16,6 +17,8 @@ import (
 	"dns3000/internal/server"
 )
 
+var Version = "0.0.0"
+
 func main() {
 	dataDir := flag.String("data-dir", "data", "Data directory")
 	dnsPort := flag.Int("p", 53, "DNS server port")
@@ -24,8 +27,15 @@ func main() {
 	dohPath := flag.String("doh-path", "/dns-query", "DoH path")
 	dohPort := flag.Int("doh-port", 443, "DoH server port")
 	webPort := flag.Int("web-port", 3000, "Web admin port")
+	showVersion := flag.Bool("version", false, "Show version information")
+	showVersionShort := flag.Bool("v", false, "Show version information (shorthand)")
 
 	flag.Parse()
+
+	if *showVersion || *showVersionShort {
+		fmt.Printf("%s\n", Version)
+		os.Exit(0)
+	}
 
 	// 1. Ensure config exists
 	if err := config.GenerateTemplate(*dataDir); err != nil {

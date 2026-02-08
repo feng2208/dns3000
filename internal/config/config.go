@@ -160,6 +160,11 @@ func GenerateTemplate(dir string) error {
 
 device_groups:
   - name: default
+    rule_groups:
+      - name: default
+        schedules: []
+rule_groups:
+  - name: default
 `
 	return os.WriteFile(configPath, []byte(template), 0644)
 }

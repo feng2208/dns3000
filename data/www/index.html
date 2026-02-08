@@ -866,7 +866,7 @@
                             <button onclick='showDeviceGroupDetails(${index})' class="text-gray-600 hover:underline">详情</button>
                             <button onclick='editDeviceGroup(${index})' class="text-blue-600 hover:underline">编辑</button>
 
-                            <button onclick="confirmDelete('device-group', '${g.name}')" class="text-red-600 hover:underline">删除</button>
+                            ${g.name === 'default' ? '' : `<button onclick="confirmDelete('device-group', '${g.name}')" class="text-red-600 hover:underline">删除</button>`}
                         </td>
                     `;
                     tbody.appendChild(tr);
@@ -1084,7 +1084,7 @@
                         <td class="px-4 py-3 text-sm space-x-2">
                             <button onclick='showRuleGroupDetails(${index})' class="text-gray-600 hover:underline">详情</button>
                             <button onclick='editRuleGroup(${index})' class="text-blue-600 hover:underline">编辑</button>
-                            <button onclick="confirmDelete('rule-group', '${g.name}')" class="text-red-600 hover:underline">删除</button>
+                            ${g.name === 'default' ? '' : `<button onclick="confirmDelete('rule-group', '${g.name}')" class="text-red-600 hover:underline">删除</button>`}
                         </td>
                     `;
                     tbody.appendChild(tr);

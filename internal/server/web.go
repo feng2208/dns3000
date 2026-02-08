@@ -442,6 +442,11 @@ func (ws *WebServer) handleDeviceGroups(w http.ResponseWriter, r *http.Request) 
 
 	if r.Method == "DELETE" {
 		name := r.URL.Query().Get("name")
+		// Prevent deleting the 'default' device group
+		if name == "default" {
+			http.Error(w, "Cannot delete: 'default' device group cannot be deleted", 400)
+			return
+		}
 		// Check if any device uses this group
 		for _, d := range ws.Cfg.Devices {
 			if d.DeviceGroup == name {
@@ -500,6 +505,11 @@ func (ws *WebServer) handleRuleGroups(w http.ResponseWriter, r *http.Request) {
 
 	if r.Method == "DELETE" {
 		name := r.URL.Query().Get("name")
+		// Prevent deleting the 'default' rule group
+		if name == "default" {
+			http.Error(w, "Cannot delete: 'default' rule group cannot be deleted", 400)
+			return
+		}
 		// Check if any device group uses this rule group
 		for _, dg := range ws.Cfg.DeviceGroups {
 			for _, rg := range dg.RuleGroups {

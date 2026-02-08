@@ -452,6 +452,7 @@
                 const data = await res.json();
                 document.getElementById('stat-total').textContent = data.total_queries;
                 document.getElementById('stat-blocked').textContent = data.blocked;
+                document.getElementById('stat-rewritten').textContent = data.rewritten;
                 document.getElementById('stat-allowed').textContent = data.allowed;
                 document.getElementById('stat-percentage').textContent = data.blocked_percentage.toFixed(1) + '%';
             } catch (e) { console.error(e); }

@@ -108,8 +108,7 @@
                     <thead class="bg-gray-50">
                         <tr>
                             <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">名称</th>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">IP</th>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">MAC</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">MAC / IP</th>
                             <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">设备组</th>
                             <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">操作</th>
                         </tr>
@@ -128,9 +127,8 @@
                 <table class="min-w-full divide-y divide-gray-200">
                     <thead class="bg-gray-50">
                         <tr>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">IP</th>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">MAC</th>
                             <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">名称</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">MAC / IP</th>
                             <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">最后请求</th>
                             <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">查询次数</th>
                             <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">操作</th>
@@ -521,9 +519,9 @@
                             <div class="text-xs text-gray-500 truncate max-w-[150px]">${log.rule || log.rule_group || (log.latency_ms !== undefined ? log.latency_ms.toFixed(2) + ' ms' : '-')}</div>
                         </td>
                         <td class="px-4 py-3 text-sm">
-    <div class="text-gray-900">${log.device_name || '-'}</div>
-    <div class="text-xs text-gray-500">${log.device_ip}</div>
-</td>
+                            <div class="text-gray-900">${log.device_name || '-'}</div>
+                            <div class="text-xs text-gray-500">${log.device_ip} (${log.device_mac || '-'})</div>
+                        </td>
                     `;
                     tbody.appendChild(tr);
                 });
@@ -639,8 +637,12 @@
                     const tr = document.createElement('tr');
                     tr.innerHTML = `
                         <td class="px-4 py-3 text-sm text-gray-900">${d.name}</td>
-                        <td class="px-4 py-3 text-sm text-gray-500">${d.ip || '-'}</td>
-                        <td class="px-4 py-3 text-sm text-gray-500">${d.mac || '-'}</td>
+                        <td class="px-4 py-3 text-sm">
+                            <div class="font-mono text-xs">
+                                <div>${d.mac || '-'}</div>
+                                <div class="text-gray-500">${d.ip || '-'}</div>
+                            </div>
+                        </td>
                         <td class="px-4 py-3 text-sm text-gray-500">${d.device_group || 'default'}</td>
                         <td class="px-4 py-3 text-sm space-x-2">
                             <button onclick="editDevice('${d.mac || ''}', '${d.ip || ''}', '${d.name}', '${d.device_group || ''}')" class="text-blue-600 hover:underline">编辑</button>
@@ -660,16 +662,20 @@
                 const tbody = document.getElementById('active-devices-table-body');
                 tbody.innerHTML = '';
                 if (list.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="6" class="px-4 py-3 text-sm text-gray-500 text-center">暂无活跃设备</td></tr>';
+                    tbody.innerHTML = '<tr><td colspan="5" class="px-4 py-3 text-sm text-gray-500 text-center">暂无活跃设备</td></tr>';
                     return;
                 }
                 list.forEach(d => {
                     const tr = document.createElement('tr');
                     const lastSeen = new Date(d.last_seen);
                     tr.innerHTML = `
-                        <td class="px-4 py-3 text-sm text-gray-900">${d.ip}</td>
-                        <td class="px-4 py-3 text-sm text-gray-500">${d.mac || '-'}</td>
-                        <td class="px-4 py-3 text-sm text-gray-500">${d.name || 'Unknown'}</td>
+                        <td class="px-4 py-3 text-sm text-gray-900">${d.name || 'Unknown'}</td>
+                        <td class="px-4 py-3 text-sm">
+                            <div class="font-mono text-xs">
+                                <div>${d.mac || '-'}</div>
+                                <div class="text-gray-500">${d.ip}</div>
+                            </div>
+                        </td>
                         <td class="px-4 py-3 text-sm text-gray-500">${lastSeen.toLocaleString()}</td>
                         <td class="px-4 py-3 text-sm text-gray-500">${d.query_count}</td>
                         <td class="px-4 py-3 text-sm">
@@ -1406,6 +1412,7 @@
             else showAlert('保存上游配置成功', 'success');
         }
 
+
         // Confirm Delete
         let deleteType = '', deleteKey = '', deleteIp = '';
         function confirmDelete(type, key, ip) {
@@ -1446,158 +1453,8 @@
             else if (deleteType === 'service') fetchServices();
         }
 
-
-        // Stats
-        async function fetchStats() {
-            try {
-                const res = await fetch('/api/stats');
-                const data = await res.json();
-                document.getElementById('stat-total').textContent = data.total_queries;
-                document.getElementById('stat-blocked').textContent = data.blocked;
-                document.getElementById('stat-rewritten').textContent = data.rewritten;
-                document.getElementById('stat-allowed').textContent = data.allowed;
-                document.getElementById('stat-percentage').textContent = data.blocked_percentage.toFixed(1) + '%';
-            } catch (e) { console.error(e); }
-        }
-
-        // Settings
-        async function fetchSettings() {
-            try {
-                const res = await fetch('/api/settings');
-                const data = await res.json();
-                document.getElementById('log-count-input').value = data.log_count;
-                document.getElementById('rule-update-interval-input').value = data.rule_update_interval;
-            } catch (e) { console.error(e); }
-        }
-
-        async function saveSettings() {
-            const logCount = parseInt(document.getElementById('log-count-input').value);
-            const interval = document.getElementById('rule-update-interval-input').value;
-            const res = await fetch('/api/settings', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ log_count: logCount, rule_update_interval: interval })
-            });
-            if (res.ok) showAlert('设置已保存', 'success');
-            else showAlert('保存失败: ' + await res.text());
-        }
-
-        // Devices
-        async function fetchDevices() {
-            try {
-                const res = await fetch('/api/devices');
-                const list = await res.json() || [];
-                const tbody = document.getElementById('devices-table-body');
-                tbody.innerHTML = '';
-                list.forEach(d => {
-                    const tr = document.createElement('tr');
-                    tr.innerHTML = `
-                        <td class="px-4 py-3 text-sm text-gray-900">${d.name}</td>
-                        <td class="px-4 py-3 text-sm text-gray-500">${d.ip}</td>
-                        <td class="px-4 py-3 text-sm text-gray-500">${d.mac}</td>
-                        <td class="px-4 py-3 text-sm text-gray-500">${d.device_group}</td>
-                        <td class="px-4 py-3 text-sm space-x-2">
-                            <button onclick='editDevice(${JSON.stringify(d)})' class="text-blue-600 hover:underline">编辑</button>
-                            <button onclick="confirmDelete('device', '${d.mac}', '${d.ip}')" class="text-red-600 hover:underline">删除</button>
-                        </td>
-                    `;
-                    tbody.appendChild(tr);
-                });
-            } catch (e) { console.error(e); }
-        }
-
-        function showAddDeviceModal() {
-            editDevice({ name: '', ip: '', mac: '', device_group: '' }, true);
-        }
-
-        async function editDevice(d, isNew = false) {
-            document.getElementById('modal-edit-title').textContent = isNew ? '添加设备' : '编辑设备';
-
-            let groups = [];
-            try {
-                const res = await fetch('/api/device-groups');
-                groups = await res.json() || [];
-            } catch (e) { }
-
-            let groupOptions = groups.map(g => `<option value="${g.name}" ${d.device_group === g.name ? 'selected' : ''}>${g.name}</option>`).join('');
-
-            document.getElementById('modal-edit-content').innerHTML = `
-                <div class="space-y-4">
-                    <div><label class="block text-sm font-medium mb-1">名称</label><input type="text" id="dev-name" value="${d.name}" class="w-full border rounded px-3 py-2"></div>
-                    <div><label class="block text-sm font-medium mb-1">IP</label><input type="text" id="dev-ip" value="${d.ip}" class="w-full border rounded px-3 py-2"></div>
-                    <div><label class="block text-sm font-medium mb-1">MAC</label><input type="text" id="dev-mac" value="${d.mac}" class="w-full border rounded px-3 py-2"></div>
-                    <div><label class="block text-sm font-medium mb-1">设备组</label><select id="dev-group" class="w-full border rounded px-3 py-2"><option value="">-- 选择设备组 --</option>${groupOptions}</select></div>
-                </div>
-            `;
-
-            document.getElementById('modal-edit-save').onclick = async () => {
-                const body = {
-                    name: document.getElementById('dev-name').value,
-                    ip: document.getElementById('dev-ip').value,
-                    mac: document.getElementById('dev-mac').value,
-                    device_group: document.getElementById('dev-group').value
-                };
-                if (!isNew) {
-                    body.old_mac = d.mac;
-                    body.old_ip = d.ip;
-                }
-
-                const method = isNew ? 'POST' : 'PUT';
-                const res = await fetch('/api/devices', {
-                    method: method,
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(body)
-                });
-
-                if (!res.ok) showAlert('操作失败: ' + await res.text());
-                else {
-                    closeModal('modal-edit');
-                    fetchDevices();
-                }
-            };
-            openModal('modal-edit');
-        }
-
-        async function fetchActiveDevices() {
-            try {
-                const res = await fetch('/api/active-devices');
-                const list = await res.json() || [];
-                const tbody = document.getElementById('active-devices-table-body');
-                tbody.innerHTML = '';
-                list.forEach(d => {
-                    const lastReq = d.last_seen ? new Date(d.last_seen).toLocaleString() : '-';
-                    const ip = d.ip || '';
-                    const mac = d.mac || '';
-                    const name = d.name || '';
-                    const tr = document.createElement('tr');
-                    tr.innerHTML = `
-                        <td class="px-4 py-3 text-sm text-gray-900">${ip}</td>
-                        <td class="px-4 py-3 text-sm text-gray-500">${mac}</td>
-                        <td class="px-4 py-3 text-sm text-gray-500">${name}</td>
-                        <td class="px-4 py-3 text-sm text-gray-500">${lastReq}</td>
-                        <td class="px-4 py-3 text-sm text-gray-500">${d.query_count || 0}</td>
-                        <td class="px-4 py-3 text-sm space-x-2">
-                             <button onclick='addToDevices("${ip}", "${mac}", "${name}")' class="text-blue-600 hover:underline">添加到列表</button>
-                        </td>
-                    `;
-                    tbody.appendChild(tr);
-                });
-            } catch (e) { console.error(e); }
-        }
-
-        function addToDevices(ip, mac, name) {
-            editDevice({ name: name, ip: ip, mac: mac, device_group: '' }, true);
-        }
-
         // Init
-        fetchStats();
-        fetchSettings();
-        fetchDevices();
-        fetchActiveDevices();
-        fetchDeviceGroups();
-        fetchRuleGroups();
-        fetchServices();
-        fetchUpstreams();
+        showTab('dashboard');
     </script>
 </body>
 

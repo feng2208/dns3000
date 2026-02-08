@@ -132,4 +132,20 @@ func (m *Manager) Reload(cfg *config.Config) {
 			m.devicesByIP[d.IP] = d
 		}
 	}
+
+	// Refresh active devices metadata
+	for _, ad := range m.activeDevices {
+		// Reset name to "Unknown" or verify
+		ad.Name = "Unknown"
+		var d *config.Device
+		if ad.MAC != "" {
+			d = m.devices[ad.MAC]
+		}
+		if d == nil && ad.IP != "" {
+			d = m.devicesByIP[ad.IP]
+		}
+		if d != nil {
+			ad.Name = d.Name
+		}
+	}
 }

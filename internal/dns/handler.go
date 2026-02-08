@@ -123,26 +123,25 @@ func (h *Handler) identifyDevice(ctx RequestContext) (*config.Device, string) {
 	var d *config.Device
 	mac := ctx.ClientMAC
 
-	// 1. Try IP Lookup first
-	if ctx.ClientIP != "" {
+	// 1. Ensure we have a MAC if possible
+	if mac == "" && ctx.ClientIP != "" {
+		if foundMac, err := h.DeviceManager.GetMAC(ctx.ClientIP); err == nil && foundMac != "" {
+			mac = foundMac
+		}
+	}
+
+	// 2. Try MAC Lookup first (Prioritized)
+	if mac != "" {
+		d = h.DeviceManager.GetDeviceByMAC(mac)
+	}
+
+	// 3. If not found by MAC, try IP Lookup
+	if d == nil && ctx.ClientIP != "" {
 		d = h.DeviceManager.GetDeviceByIP(ctx.ClientIP)
 	}
 
-	// 2. If not found by IP, try MAC
-	if d == nil {
-		if mac != "" {
-			d = h.DeviceManager.GetDeviceByMAC(mac)
-		}
-		if d == nil {
-			// Try ARP
-			if foundMac, err := h.DeviceManager.GetMAC(ctx.ClientIP); err == nil && foundMac != "" {
-				mac = foundMac
-				d = h.DeviceManager.GetDeviceByMAC(mac)
-			}
-		}
-	} else if mac == "" && d.MAC != "" {
-		// If found by IP and we don't have MAC yet, try to use MAC from config if available
-		// This is just for context/logging consistency if needed, but not strictly required for lookup.
+	// If found by IP and we don't have MAC yet, try to use MAC from config if available
+	if d != nil && mac == "" && d.MAC != "" {
 		mac = d.MAC
 	}
 

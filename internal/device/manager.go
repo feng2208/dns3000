@@ -58,17 +58,35 @@ func (m *Manager) RecordActivity(ip, mac, name string) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	if ad, ok := m.activeDevices[ip]; ok {
+	key := ip
+	if mac != "" {
+		key = mac
+	}
+
+	if ad, ok := m.activeDevices[key]; ok {
 		ad.LastSeen = time.Now()
 		ad.QueryCount++
 		if mac != "" {
 			ad.MAC = mac
 		}
+		// If entry was keyed by IP but we now have MAC, correct the content if needed?
+		// Actually if key == mac, ad.MAC is redundant but fine.
 		if name != "" && name != "Unknown" {
 			ad.Name = name
 		}
+		// Update IP if it changed for this MAC
+		if ip != "" {
+			ad.IP = ip
+		}
 	} else {
-		m.activeDevices[ip] = &ActiveDevice{
+		// Check if we have an old entry by IP that we should migrate or just delete?
+		// If we are keying by MAC, we might have an old entry keyed by IP.
+		// It's safer to remove the IP-keyed entry to avoid duplicates in the list.
+		if mac != "" {
+			delete(m.activeDevices, ip)
+		}
+
+		m.activeDevices[key] = &ActiveDevice{
 			IP:         ip,
 			MAC:        mac,
 			Name:       name,

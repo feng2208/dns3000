@@ -95,15 +95,23 @@ func (l *Logger) SaveLogs(filePath string) error {
 	return nil
 }
 
+func (l *Logger) SetLimit(limit int) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	l.limit = limit
+	if len(l.logs) > limit {
+		l.logs = l.logs[len(l.logs)-limit:]
+	}
+}
+
 func (l *Logger) Log(entry QueryLog) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 
-	// Append to memory only, disk write happens on shutdown
-	if len(l.logs) >= l.limit {
-		l.logs = l.logs[1:]
-	}
 	l.logs = append(l.logs, entry)
+	if len(l.logs) > l.limit {
+		l.logs = l.logs[len(l.logs)-l.limit:]
+	}
 
 	// Update stats
 	l.stats.TotalQueries++

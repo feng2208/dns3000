@@ -203,6 +203,9 @@ func (ws *WebServer) handleSettings(w http.ResponseWriter, r *http.Request) {
 		}
 		if req.LogCount > 0 {
 			ws.Cfg.LogCount = req.LogCount
+			if ws.Logger != nil {
+				ws.Logger.SetLimit(req.LogCount)
+			}
 		}
 		if req.RuleUpdateInterval != "" {
 			d, err := time.ParseDuration(req.RuleUpdateInterval)

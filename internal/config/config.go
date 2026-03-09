@@ -128,9 +128,9 @@ func Load(dir string) (*Config, error) {
 	if err := yaml.Unmarshal(data, &cfg); err != nil {
 		return nil, err
 	}
-	// Set default log count if 0 (though 0 might be valid, requirement says default 5000)
+	// Set default log count if 0 (though 0 might be valid, requirement says default 20000)
 	if cfg.LogCount == 0 {
-		cfg.LogCount = 5000
+		cfg.LogCount = 20000
 	}
 	// Set default rule update interval to 24 hours if not set
 	if cfg.RuleUpdateInterval == 0 {

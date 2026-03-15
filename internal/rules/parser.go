@@ -21,6 +21,7 @@ type Rule struct {
 	Modifiers   map[string]string
 	IP          string // For hosts style
 	Raw         string
+	SourceName  string // Added for tracking rule source
 	regex       *regexp.Regexp
 }
 

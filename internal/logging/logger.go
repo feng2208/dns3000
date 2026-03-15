@@ -16,6 +16,7 @@ type QueryLog struct {
 	Status     string    `json:"status"`   // Blocked, Allowed, Rewritten
 	RuleGroup  string    `json:"rule_group,omitempty"`
 	Rule       string    `json:"rule,omitempty"`
+	RuleSource string    `json:"rule_source,omitempty"`
 	DeviceIP   string    `json:"device_ip"`
 	DeviceName string    `json:"device_name"`
 	DeviceMAC  string    `json:"device_mac"`

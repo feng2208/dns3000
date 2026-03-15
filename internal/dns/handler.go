@@ -282,6 +282,7 @@ func (h *Handler) handleBlock(w dns.ResponseWriter, r *dns.Msg, rule *rules.Rule
 	logEntry.Status = statusStr
 	logEntry.Rule = rule.Raw
 	logEntry.RuleGroup = groupName
+	logEntry.RuleSource = rule.SourceName
 	logEntry.Response = summarizeResponse(msg)
 	h.Logger.Log(*logEntry)
 }

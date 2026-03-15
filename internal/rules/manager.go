@@ -117,6 +117,7 @@ func (m *Manager) loadGroup(rg config.RuleGroup, forceUpdate bool) (*Engine, err
 				return nil, fmt.Errorf("source %s: %w", src.Name, err)
 			}
 			for _, r := range rules {
+				r.SourceName = src.Name
 				engine.AddRule(r)
 			}
 			fmt.Printf("[%s]   Loaded source: %s (%d rules)\n", time.Now().Format("2006-01-02 15:04:05"), src.Name, len(rules))
@@ -135,6 +136,7 @@ func (m *Manager) loadGroup(rg config.RuleGroup, forceUpdate bool) (*Engine, err
 				if service != nil {
 					rules := m.parseContent(service.Content)
 					for _, r := range rules {
+						r.SourceName = "service: " + svcName
 						engine.AddRule(r)
 					}
 					fmt.Printf("[%s]   Loaded service: %s (%d rules)\n", time.Now().Format("2006-01-02 15:04:05"), svcName, len(rules))

@@ -548,6 +548,7 @@
             if (log.upstream) html += `<p><strong>上游 DNS:</strong> ${log.upstream}</p>`;
             if (log.rule) html += `<p><strong>规则:</strong> <span class="text-xs bg-gray-100 px-1 py-0.5 rounded">${log.rule}</span></p>`;
             if (log.rule_group) html += `<p><strong>规则组:</strong> ${log.rule_group}</p>`;
+            if (log.rule_source) html += `<p><strong>规则来源:</strong> ${log.rule_source}</p>`;
             if (log.response) {
                 const parts = log.response.split('|');
                 let respHtml = `<div class="mt-2"><strong>响应:</strong><div class="mt-1 p-2 bg-gray-100 rounded border border-gray-200 font-mono text-xs whitespace-pre-wrap leading-relaxed shadow-sm">`;

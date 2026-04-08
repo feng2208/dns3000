@@ -59,7 +59,6 @@ func StartWebServer(port int, cfg *config.Config, logger *logging.Logger, devMgr
 	http.HandleFunc("/api/settings", ws.requireAuth(ws.gzipMiddleware(ws.handleSettings)))
 	http.HandleFunc("/api/devices", ws.requireAuth(ws.gzipMiddleware(ws.handleDevices)))
 	http.HandleFunc("/api/active-devices", ws.requireAuth(ws.gzipMiddleware(ws.handleActiveDevices)))
-	http.HandleFunc("/api/device-groups", ws.requireAuth(ws.gzipMiddleware(ws.handleDeviceGroups)))
 	http.HandleFunc("/api/rule-groups", ws.requireAuth(ws.gzipMiddleware(ws.handleRuleGroups)))
 	http.HandleFunc("/api/services", ws.requireAuth(ws.gzipMiddleware(ws.handleServices)))
 	http.HandleFunc("/api/upstreams", ws.requireAuth(ws.gzipMiddleware(ws.handleUpstreams)))
@@ -317,10 +316,6 @@ func (ws *WebServer) handleDevices(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, err.Error(), 400)
 			return
 		}
-		if device.DeviceGroup == "" {
-			http.Error(w, "Device group is required", 400)
-			return
-		}
 		if device.ID == "" && device.IP == "" {
 			http.Error(w, "ID or IP is required", 400)
 			return
@@ -333,19 +328,15 @@ func (ws *WebServer) handleDevices(w http.ResponseWriter, r *http.Request) {
 
 	if r.Method == "PUT" {
 		var req struct {
-			OldID       string `json:"old_id"`
-			OldIP       string `json:"old_ip"`
-			Name        string `json:"name"`
-			IP          string `json:"ip"`
-			ID          string `json:"id"`
-			DeviceGroup string `json:"device_group"`
+			OldID      string                   `json:"old_id"`
+			OldIP      string                   `json:"old_ip"`
+			Name       string                   `json:"name"`
+			IP         string                   `json:"ip"`
+			ID         string                   `json:"id"`
+			RuleGroups []config.DeviceRuleGroup `json:"rule_groups"`
 		}
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 			http.Error(w, err.Error(), 400)
-			return
-		}
-		if req.DeviceGroup == "" {
-			http.Error(w, "Device group is required", 400)
 			return
 		}
 		if req.ID == "" && req.IP == "" {
@@ -363,7 +354,7 @@ func (ws *WebServer) handleDevices(w http.ResponseWriter, r *http.Request) {
 				ws.Cfg.Devices[i].Name = req.Name
 				ws.Cfg.Devices[i].IP = req.IP
 				ws.Cfg.Devices[i].ID = req.ID
-				ws.Cfg.Devices[i].DeviceGroup = req.DeviceGroup
+				ws.Cfg.Devices[i].RuleGroups = req.RuleGroups
 				break
 			}
 		}
@@ -399,73 +390,6 @@ func (ws *WebServer) handleActiveDevices(w http.ResponseWriter, r *http.Request)
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(activeDevices)
 		return
-	}
-}
-
-func (ws *WebServer) handleDeviceGroups(w http.ResponseWriter, r *http.Request) {
-	if r.Method == "GET" {
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(ws.Cfg.DeviceGroups)
-		return
-	}
-
-	if r.Method == "POST" {
-		var group config.DeviceGroup
-		if err := json.NewDecoder(r.Body).Decode(&group); err != nil {
-			http.Error(w, err.Error(), 400)
-			return
-		}
-		ws.Cfg.DeviceGroups = append(ws.Cfg.DeviceGroups, group)
-		ws.Cfg.Save(ws.DataDir)
-		go ws.Reload()
-		return
-	}
-
-	if r.Method == "PUT" {
-		var req struct {
-			OldName    string                        `json:"old_name"`
-			Name       string                        `json:"name"`
-			RuleGroups []config.DeviceGroupRuleGroup `json:"rule_groups"`
-		}
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			http.Error(w, err.Error(), 400)
-			return
-		}
-		for i, g := range ws.Cfg.DeviceGroups {
-			if g.Name == req.OldName {
-				ws.Cfg.DeviceGroups[i].Name = req.Name
-				ws.Cfg.DeviceGroups[i].RuleGroups = req.RuleGroups
-				break
-			}
-		}
-		ws.Cfg.Save(ws.DataDir)
-		go ws.Reload()
-		return
-	}
-
-	if r.Method == "DELETE" {
-		name := r.URL.Query().Get("name")
-		// Prevent deleting the 'default' device group
-		if name == "default" {
-			http.Error(w, "Cannot delete: 'default' device group cannot be deleted", 400)
-			return
-		}
-		// Check if any device uses this group
-		for _, d := range ws.Cfg.Devices {
-			if d.DeviceGroup == name {
-				http.Error(w, "Cannot delete: group has devices", 400)
-				return
-			}
-		}
-		newGroups := []config.DeviceGroup{}
-		for _, g := range ws.Cfg.DeviceGroups {
-			if g.Name != name {
-				newGroups = append(newGroups, g)
-			}
-		}
-		ws.Cfg.DeviceGroups = newGroups
-		ws.Cfg.Save(ws.DataDir)
-		go ws.Reload()
 	}
 }
 
@@ -513,11 +437,10 @@ func (ws *WebServer) handleRuleGroups(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "Cannot delete: 'default' rule group cannot be deleted", 400)
 			return
 		}
-		// Check if any device group uses this rule group
-		for _, dg := range ws.Cfg.DeviceGroups {
-			for _, rg := range dg.RuleGroups {
+		for _, d := range ws.Cfg.Devices {
+			for _, rg := range d.RuleGroups {
 				if rg.Name == name {
-					http.Error(w, "Cannot delete: rule group is in use by device group", 400)
+					http.Error(w, "Cannot delete: rule group is in use by device", 400)
 					return
 				}
 			}

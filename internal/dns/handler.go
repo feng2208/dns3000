@@ -73,7 +73,7 @@ func (h *Handler) Resolve(w dns.ResponseWriter, r *dns.Msg, ctx RequestContext) 
 
 	// 1. Identify Device
 	d, clientID := h.identifyDevice(ctx)
-	groupName, deviceName := h.getDeviceDetails(d, clientID)
+	deviceRouteKey, deviceName := h.getDeviceDetails(d, clientID, ctx.ClientIP)
 
 	// Record activity
 	h.DeviceManager.RecordActivity(ctx.ClientIP, clientID, deviceName)
@@ -89,34 +89,34 @@ func (h *Handler) Resolve(w dns.ResponseWriter, r *dns.Msg, ctx RequestContext) 
 	}
 
 	// 2. Check Rewrites (Exact and Wildcard)
-	if h.checkRewrites(w, r, domain, groupName, ctxKey, q, &logEntry) {
+	if h.checkRewrites(w, r, domain, deviceRouteKey, ctxKey, q, &logEntry) {
 		return
 	}
 
 	// 3. Match Rules
+	activeRuleGroups := h.getActiveRuleGroups(d)
 	reqInfo := rules.RequestInfo{
-		ClientIP:    ctx.ClientIP,
-		ClientID:    clientID,
-		ClientName:  deviceName,
-		DeviceGroup: groupName,
-		Protocol:    ctx.Protocol,
-		QType:       dns.TypeToString[q.Qtype],
-		Domain:      domain,
+		ClientIP:   ctx.ClientIP,
+		ClientID:   clientID,
+		ClientName: deviceName,
+		Protocol:   ctx.Protocol,
+		QType:      dns.TypeToString[q.Qtype],
+		Domain:     domain,
 	}
 
-	blockRule, blockGroup := h.matchRuleGroups(domain, groupName, reqInfo)
+	blockRule, blockGroup := h.matchRuleGroups(domain, activeRuleGroups, reqInfo)
 	if blockRule != nil {
-		h.handleBlock(w, r, blockRule, blockGroup, ctxKey, groupName, q, &logEntry)
+		h.handleBlock(w, r, blockRule, blockGroup, ctxKey, deviceRouteKey, q, &logEntry)
 		return
 	}
 
 	// 4. Check Cache
-	if h.checkCache(w, r, ctxKey, groupName, &logEntry) {
+	if h.checkCache(w, r, ctxKey, deviceRouteKey, &logEntry) {
 		return
 	}
 
 	// 5. Forward to Upstream
-	h.resolveUpstream(w, r, domain, groupName, ctxKey, &logEntry)
+	h.resolveUpstream(w, r, domain, deviceRouteKey, ctxKey, &logEntry)
 }
 
 func (h *Handler) identifyDevice(ctx RequestContext) (*config.Device, string) {
@@ -141,14 +141,22 @@ func (h *Handler) identifyDevice(ctx RequestContext) (*config.Device, string) {
 	return d, id
 }
 
-func (h *Handler) getDeviceDetails(d *config.Device, id string) (string, string) {
-	groupName := "default"
+func (h *Handler) getDeviceDetails(d *config.Device, id, ip string) (string, string) {
+	deviceRouteKey := "default"
 	deviceName := "Unknown"
 	if d != nil {
-		groupName = d.DeviceGroup
 		deviceName = d.Name
+		if d.ID != "" {
+			deviceRouteKey = d.ID
+		} else if d.IP != "" {
+			deviceRouteKey = d.IP
+		}
+	} else if id != "" {
+		deviceRouteKey = id
+	} else if ip != "" {
+		deviceRouteKey = ip
 	}
-	return groupName, deviceName
+	return deviceRouteKey, deviceName
 }
 
 func (h *Handler) checkCache(w dns.ResponseWriter, r *dns.Msg, key, group string, logEntry *logging.QueryLog) bool {
@@ -219,8 +227,7 @@ func (h *Handler) checkRewrites(w dns.ResponseWriter, r *dns.Msg, domain, group,
 	return false
 }
 
-func (h *Handler) matchRuleGroups(domain, groupName string, reqInfo rules.RequestInfo) (*rules.Rule, string) {
-	activeRuleGroups := h.getActiveRuleGroups(groupName)
+func (h *Handler) matchRuleGroups(domain string, activeRuleGroups []string, reqInfo rules.RequestInfo) (*rules.Rule, string) {
 	for _, rgName := range activeRuleGroups {
 		engine := h.RuleManager.GetEngine(rgName)
 		if engine == nil {
@@ -351,7 +358,7 @@ func summarizeResponse(msg *dns.Msg) string {
 	return res
 }
 
-func (h *Handler) getUpstreams(domain string, groupName string) []string {
+func (h *Handler) getUpstreams(domain string, deviceRouteKey string) []string {
 	var targetUpstreams []string
 	var longestMatch string
 	for d, ups := range h.UpstreamRoutes.DomainRoutes {
@@ -363,7 +370,7 @@ func (h *Handler) getUpstreams(domain string, groupName string) []string {
 		}
 	}
 	if len(targetUpstreams) == 0 {
-		if ups, ok := h.UpstreamRoutes.GroupRoutes[groupName]; ok {
+		if ups, ok := h.UpstreamRoutes.DeviceRoutes[deviceRouteKey]; ok {
 			targetUpstreams = ups
 		}
 	}
@@ -373,29 +380,24 @@ func (h *Handler) getUpstreams(domain string, groupName string) []string {
 	return targetUpstreams
 }
 
-func (h *Handler) getActiveRuleGroups(groupName string) []string {
+func (h *Handler) getActiveRuleGroups(d *config.Device) []string {
+	if d == nil || len(d.RuleGroups) == 0 {
+		return []string{"default"}
+	}
+
 	var target []string
-	// Find DeviceGroup in Config based on name
-	for _, dg := range h.Cfg.DeviceGroups {
-		if dg.Name == groupName {
-			for _, rg := range dg.RuleGroups {
-				active := true
-				now := time.Now()
-				for _, s := range rg.Schedules {
-					if s.IsActive(now) {
-						// Exclusion schedule
-						// "If current time in schedule, group not effective"
-						active = false
-						break
-					}
-				}
-				if active {
-					target = append(target, rg.Name)
-				}
+	now := time.Now()
+	for _, rg := range d.RuleGroups {
+		active := true
+		for _, s := range rg.Schedules {
+			if s.IsActive(now) {
+				active = false
+				break
 			}
-			return target
+		}
+		if active {
+			target = append(target, rg.Name)
 		}
 	}
-	// Fallback to default if group not found?
 	return target
 }

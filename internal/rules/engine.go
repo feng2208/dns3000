@@ -53,13 +53,12 @@ func (e *Engine) AddRule(r *Rule) {
 
 // RequestInfo context for matching
 type RequestInfo struct {
-	Domain      string // Queried domain
-	ClientIP    string
-	ClientID    string
-	ClientName  string
-	DeviceGroup string
-	Protocol    string
-	QType       string // A, AAAA, etc.
+	Domain     string // Queried domain
+	ClientIP   string
+	ClientID   string
+	ClientName string
+	Protocol   string
+	QType      string // A, AAAA, etc.
 }
 
 // Match returns the matching rule

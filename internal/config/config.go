@@ -12,7 +12,6 @@ import (
 type Config struct {
 	Upstreams          UpstreamsConfig `yaml:"upstreams" json:"upstreams"`
 	Devices            []Device        `yaml:"devices" json:"devices"`
-	DeviceGroups       []DeviceGroup   `yaml:"device_groups" json:"device_groups"`
 	RuleGroups         []RuleGroup     `yaml:"rule_groups" json:"rule_groups"`
 	Services           []Service       `yaml:"services" json:"services"`
 	Rewrites           []Rewrite       `yaml:"rewrites" json:"rewrites"`
@@ -28,22 +27,17 @@ type AuthConfig struct {
 
 type UpstreamsConfig struct {
 	Default []string `yaml:"default" json:"default"`
-	Rules   []string `yaml:"rules" json:"rules"` // Parsed later: [/domain/]upstream or [device-group]upstream
+	Rules   []string `yaml:"rules" json:"rules"` // Parsed later: [/domain/]upstream or [device-id-or-ip]upstream
 }
 
 type Device struct {
-	Name        string `yaml:"name" json:"name"`
-	IP          string `yaml:"ip" json:"ip"`
-	ID          string `yaml:"id" json:"id"`
-	DeviceGroup string `yaml:"device_group" json:"device_group"`
+	Name       string            `yaml:"name" json:"name"`
+	IP         string            `yaml:"ip" json:"ip"`
+	ID         string            `yaml:"id" json:"id"`
+	RuleGroups []DeviceRuleGroup `yaml:"rule_groups" json:"rule_groups"`
 }
 
-type DeviceGroup struct {
-	Name       string                 `yaml:"name" json:"name"`
-	RuleGroups []DeviceGroupRuleGroup `yaml:"rule_groups" json:"rule_groups"`
-}
-
-type DeviceGroupRuleGroup struct {
+type DeviceRuleGroup struct {
 	Name      string     `yaml:"name" json:"name"`
 	Schedules []Schedule `yaml:"schedules" json:"schedules"`
 }
@@ -158,11 +152,6 @@ func GenerateTemplate(dir string) error {
     - 1.0.0.1 
     - 8.8.8.8
 
-device_groups:
-  - name: default
-    rule_groups:
-      - name: default
-        schedules: []
 rule_groups:
   - name: default
 `
@@ -180,13 +169,13 @@ func (c *Config) Save(dir string) error {
 
 type UpstreamRoute struct {
 	DomainRoutes map[string][]string
-	GroupRoutes  map[string][]string
+	DeviceRoutes map[string][]string
 }
 
 func (c *Config) ParseUpstreamRoutes() *UpstreamRoute {
 	routes := &UpstreamRoute{
 		DomainRoutes: make(map[string][]string),
-		GroupRoutes:  make(map[string][]string),
+		DeviceRoutes: make(map[string][]string),
 	}
 
 	for _, rule := range c.Upstreams.Rules {
@@ -207,14 +196,14 @@ func (c *Config) ParseUpstreamRoutes() *UpstreamRoute {
 			continue
 		}
 
-		// Device Group Rule: [group]upstream
+		// Device Rule: [device-id-or-ip]upstream
 		if strings.HasPrefix(rule, "[") {
 			endIdx := strings.Index(rule, "]")
 			if endIdx != -1 {
-				group := rule[1:endIdx]
+				deviceKey := rule[1:endIdx]
 				upstreamPart := strings.TrimSpace(rule[endIdx+1:])
 				upstreams := strings.Fields(upstreamPart)
-				routes.GroupRoutes[group] = upstreams
+				routes.DeviceRoutes[deviceKey] = upstreams
 			}
 			continue
 		}

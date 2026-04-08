@@ -77,6 +77,9 @@ func ParseRule(line string) (*Rule, error) {
 		rule.IsWhitelist = true
 		matchPart = matchPart[2:]
 	}
+	if matchPart == "" {
+		return nil, fmt.Errorf("invalid empty rule")
+	}
 
 	// 3. Regex
 	if strings.HasPrefix(matchPart, "/") && strings.HasSuffix(matchPart, "/") {
@@ -128,6 +131,9 @@ func ParseRule(line string) (*Rule, error) {
 		// Remove trailing | or ^
 		pattern = strings.TrimSuffix(pattern, "|")
 		pattern = strings.TrimSuffix(pattern, "^")
+		if pattern == "" {
+			return nil, fmt.Errorf("invalid empty rule pattern")
+		}
 		// Escape regex special chars except *
 		pattern = regexp.QuoteMeta(pattern)
 		// Convert * wildcard to regex .*
@@ -157,6 +163,9 @@ func ParseRule(line string) (*Rule, error) {
 		rule.Type = RuleTypeDomain
 		rule.Pattern = strings.TrimPrefix(matchPart, "||")
 		rule.Pattern = strings.TrimSuffix(rule.Pattern, "^")
+		if rule.Pattern == "" {
+			return nil, fmt.Errorf("invalid empty domain rule")
+		}
 		return rule, nil
 	}
 
@@ -165,6 +174,9 @@ func ParseRule(line string) (*Rule, error) {
 	rule.Type = RuleTypeHosts
 	rule.IP = "0.0.0.0"
 	rule.Pattern = strings.TrimSuffix(matchPart, "^")
+	if rule.Pattern == "" {
+		return nil, fmt.Errorf("invalid empty hosts rule")
+	}
 
 	return rule, nil
 }

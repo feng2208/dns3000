@@ -88,17 +88,12 @@ func (h *Handler) Resolve(w dns.ResponseWriter, r *dns.Msg, ctx RequestContext) 
 		DeviceMAC:  clientMac,
 	}
 
-	// 2. Check Cache
-	if h.checkCache(w, r, ctxKey, groupName, &logEntry) {
-		return
-	}
-
-	// 3. Check Rewrites (Exact and Wildcard)
+	// 2. Check Rewrites (Exact and Wildcard)
 	if h.checkRewrites(w, r, domain, groupName, ctxKey, q, &logEntry) {
 		return
 	}
 
-	// 4. Match Rules
+	// 3. Match Rules
 	reqInfo := rules.RequestInfo{
 		ClientIP:    ctx.ClientIP,
 		ClientMAC:   clientMac,
@@ -112,6 +107,11 @@ func (h *Handler) Resolve(w dns.ResponseWriter, r *dns.Msg, ctx RequestContext) 
 	blockRule, blockGroup := h.matchRuleGroups(domain, groupName, reqInfo)
 	if blockRule != nil {
 		h.handleBlock(w, r, blockRule, blockGroup, ctxKey, groupName, q, &logEntry)
+		return
+	}
+
+	// 4. Check Cache
+	if h.checkCache(w, r, ctxKey, groupName, &logEntry) {
 		return
 	}
 
@@ -193,7 +193,6 @@ func (h *Handler) checkRewrites(w dns.ResponseWriter, r *dns.Msg, domain, group,
 				msg.Answer = append(msg.Answer, rr)
 			}
 		}
-		h.Cache.Set(key, group, msg, 30*time.Second, false, "Rewritten")
 		w.WriteMsg(msg)
 
 		logEntry.Status = "Rewritten"
@@ -214,7 +213,6 @@ func (h *Handler) checkRewrites(w dns.ResponseWriter, r *dns.Msg, domain, group,
 		msg.Answer = append(msg.Answer, rr)
 		msg.Answer = append(msg.Answer, resp.Answer...) // Flatten answer?
 		msg.Rcode = resp.Rcode
-		h.Cache.Set(key, group, msg, 30*time.Second, false, "Rewritten")
 		w.WriteMsg(msg)
 
 		logEntry.Status = "Rewritten"
@@ -276,7 +274,6 @@ func (h *Handler) handleBlock(w dns.ResponseWriter, r *dns.Msg, rule *rules.Rule
 		}
 	}
 
-	h.Cache.Set(key, deviceGroup, msg, 30*time.Second, false, statusStr)
 	w.WriteMsg(msg)
 
 	logEntry.Status = statusStr
@@ -303,7 +300,7 @@ func (h *Handler) resolveUpstream(w dns.ResponseWriter, r *dns.Msg, domain, grou
 				}
 			}
 		}
-		h.Cache.Set(key, group, resp, time.Duration(minTTL)*time.Second, true, "Allowed")
+		h.Cache.Set(key, group, resp, time.Duration(minTTL)*time.Second, "Allowed")
 		w.WriteMsg(resp)
 
 		logEntry.Status = "Allowed"

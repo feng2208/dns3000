@@ -66,25 +66,17 @@ func updateTTL(msg *dns.Msg, ttl time.Duration) {
 }
 
 // Set stores the message.
-// isUpstream: true if from upstream (apply 20s-30m clamp), false if local/blocked (keep provided ttl).
-func (c *Cache) Set(key string, group string, msg *dns.Msg, ttl time.Duration, isUpstream bool, status string) {
+func (c *Cache) Set(key string, group string, msg *dns.Msg, ttl time.Duration, status string) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
 	finalTTL := ttl
-	if isUpstream {
-		// Clamp 20s - 30m
-		if finalTTL < 20*time.Second {
-			finalTTL = 20 * time.Second
-		}
-		if finalTTL > 30*time.Minute {
-			finalTTL = 30 * time.Minute
-		}
-	} else {
-		// Blocked/Rewritten: usually 30s
-		if finalTTL == 0 {
-			finalTTL = 30 * time.Second
-		}
+	// Clamp 20s - 30m
+	if finalTTL < 20*time.Second {
+		finalTTL = 20 * time.Second
+	}
+	if finalTTL > 30*time.Minute {
+		finalTTL = 30 * time.Minute
 	}
 
 	fullKey := key + ":" + group

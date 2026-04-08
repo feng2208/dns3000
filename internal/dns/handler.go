@@ -89,7 +89,7 @@ func (h *Handler) Resolve(w dns.ResponseWriter, r *dns.Msg, ctx RequestContext) 
 	}
 
 	// 2. Check Rewrites (Exact and Wildcard)
-	if h.checkRewrites(w, r, domain, deviceRouteKey, ctxKey, q, &logEntry) {
+	if h.checkRewrites(w, r, domain, deviceRouteKey, q, &logEntry) {
 		return
 	}
 
@@ -106,7 +106,7 @@ func (h *Handler) Resolve(w dns.ResponseWriter, r *dns.Msg, ctx RequestContext) 
 
 	blockRule, blockGroup := h.matchRuleGroups(domain, activeRuleGroups, reqInfo)
 	if blockRule != nil {
-		h.handleBlock(w, r, blockRule, blockGroup, ctxKey, deviceRouteKey, q, &logEntry)
+		h.handleBlock(w, r, blockRule, blockGroup, q, &logEntry)
 		return
 	}
 
@@ -173,7 +173,7 @@ func (h *Handler) checkCache(w dns.ResponseWriter, r *dns.Msg, key, group string
 	return true
 }
 
-func (h *Handler) checkRewrites(w dns.ResponseWriter, r *dns.Msg, domain, group, key string, q dns.Question, logEntry *logging.QueryLog) bool {
+func (h *Handler) checkRewrites(w dns.ResponseWriter, r *dns.Msg, domain, group string, q dns.Question, logEntry *logging.QueryLog) bool {
 	rewriteVal := h.RewriteEngine.Match(domain)
 	if rewriteVal == "" {
 		return false
@@ -185,10 +185,11 @@ func (h *Handler) checkRewrites(w dns.ResponseWriter, r *dns.Msg, domain, group,
 
 	if IsIP(rewriteVal) {
 		msg.Rcode = dns.RcodeSuccess
-		if q.Qtype == dns.TypeA {
+		switch q.Qtype {
+		case dns.TypeA:
 			rr, _ := dns.NewRR(fmt.Sprintf("%s 30 IN A %s", q.Name, rewriteVal))
 			msg.Answer = append(msg.Answer, rr)
-		} else if q.Qtype == dns.TypeAAAA {
+		case dns.TypeAAAA:
 			if ip := net.ParseIP(rewriteVal); ip != nil && ip.To4() == nil {
 				rr, _ := dns.NewRR(fmt.Sprintf("%s 30 IN AAAA %s", q.Name, rewriteVal))
 				msg.Answer = append(msg.Answer, rr)
@@ -248,7 +249,7 @@ func (h *Handler) matchRuleGroups(domain string, activeRuleGroups []string, reqI
 	return nil, ""
 }
 
-func (h *Handler) handleBlock(w dns.ResponseWriter, r *dns.Msg, rule *rules.Rule, groupName, key, deviceGroup string, q dns.Question, logEntry *logging.QueryLog) {
+func (h *Handler) handleBlock(w dns.ResponseWriter, r *dns.Msg, rule *rules.Rule, groupName string, q dns.Question, logEntry *logging.QueryLog) {
 	msg := new(dns.Msg)
 	msg.SetReply(r)
 

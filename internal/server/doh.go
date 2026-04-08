@@ -59,7 +59,8 @@ func handleDoH(w http.ResponseWriter, r *http.Request, basePath string, handler 
 
 	// 2. Parse DNS Message
 	var msg *mdns.Msg
-	if r.Method == "POST" {
+	switch r.Method {
+	case "POST":
 		body, err := io.ReadAll(r.Body)
 		if err != nil {
 			http.Error(w, "Failed to read body", http.StatusBadRequest)
@@ -70,7 +71,7 @@ func handleDoH(w http.ResponseWriter, r *http.Request, basePath string, handler 
 			http.Error(w, "Invalid DNS message", http.StatusBadRequest)
 			return
 		}
-	} else if r.Method == "GET" {
+	case "GET":
 		// base64url decode dns parameter
 		dnsParam := r.URL.Query().Get("dns")
 		if dnsParam == "" {
@@ -80,7 +81,7 @@ func handleDoH(w http.ResponseWriter, r *http.Request, basePath string, handler 
 		// TODO: Implement GET if needed.
 		http.Error(w, "GET not supported yet", http.StatusMethodNotAllowed)
 		return
-	} else {
+	default:
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		return
 	}

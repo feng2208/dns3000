@@ -46,15 +46,14 @@ func StartDoHServer(port int, cert, key, path string, handler *dns.Handler) {
 }
 
 func handleDoH(w http.ResponseWriter, r *http.Request, basePath string, handler *dns.Handler) {
-	// 1. Extract MAC from path if present
-	mac := ""
+	// 1. Extract device ID from the URL path if present.
+	// Example: /dns-query/MY-PC -> ClientID = MY-PC
+	id := ""
 	if len(r.URL.Path) > len(basePath) {
 		sub := r.URL.Path[len(basePath):]
 		sub = strings.TrimPrefix(sub, "/")
 		if sub != "" {
-			// Basic validation: dots/dashes/colons allowed in MAC usually, or just hex.
-			// The user spec says "from url path".
-			mac = sub
+			id = sub
 		}
 	}
 
@@ -78,7 +77,7 @@ func handleDoH(w http.ResponseWriter, r *http.Request, basePath string, handler 
 			http.Error(w, "Missing dns parameter", http.StatusBadRequest)
 			return
 		}
-		// TODO: Implement GET if needed, skipping for now to focus on POST/MAC
+		// TODO: Implement GET if needed.
 		http.Error(w, "GET not supported yet", http.StatusMethodNotAllowed)
 		return
 	} else {
@@ -95,9 +94,9 @@ func handleDoH(w http.ResponseWriter, r *http.Request, basePath string, handler 
 	rw := &HttpDNSWriter{W: w, LocalAddrStr: r.Host, RemoteAddrStr: r.RemoteAddr}
 
 	ctx := dns.RequestContext{
-		ClientIP:  remoteIP,
-		ClientMAC: mac,
-		Protocol:  "doh",
+		ClientIP: remoteIP,
+		ClientID: id,
+		Protocol: "doh",
 	}
 
 	handler.Resolve(rw, msg, ctx)

@@ -38,9 +38,9 @@ func (h *Handler) Reload(cfg *config.Config) {
 }
 
 type RequestContext struct {
-	ClientIP  string
-	ClientMAC string
-	Protocol  string
+	ClientIP string
+	ClientID string
+	Protocol string
 }
 
 func (h *Handler) ServeDNS(w dns.ResponseWriter, r *dns.Msg) {
@@ -72,11 +72,11 @@ func (h *Handler) Resolve(w dns.ResponseWriter, r *dns.Msg, ctx RequestContext) 
 	ctxKey := fmt.Sprintf("%s:%d", q.Name, q.Qtype)
 
 	// 1. Identify Device
-	d, clientMac := h.identifyDevice(ctx)
-	groupName, deviceName := h.getDeviceDetails(d, clientMac)
+	d, clientID := h.identifyDevice(ctx)
+	groupName, deviceName := h.getDeviceDetails(d, clientID)
 
 	// Record activity
-	h.DeviceManager.RecordActivity(ctx.ClientIP, clientMac, deviceName)
+	h.DeviceManager.RecordActivity(ctx.ClientIP, clientID, deviceName)
 
 	logEntry := logging.QueryLog{
 		Time:       time.Now(),
@@ -85,7 +85,7 @@ func (h *Handler) Resolve(w dns.ResponseWriter, r *dns.Msg, ctx RequestContext) 
 		Protocol:   ctx.Protocol,
 		DeviceIP:   ctx.ClientIP,
 		DeviceName: deviceName,
-		DeviceMAC:  clientMac,
+		DeviceID:   clientID,
 	}
 
 	// 2. Check Rewrites (Exact and Wildcard)
@@ -96,7 +96,7 @@ func (h *Handler) Resolve(w dns.ResponseWriter, r *dns.Msg, ctx RequestContext) 
 	// 3. Match Rules
 	reqInfo := rules.RequestInfo{
 		ClientIP:    ctx.ClientIP,
-		ClientMAC:   clientMac,
+		ClientID:    clientID,
 		ClientName:  deviceName,
 		DeviceGroup: groupName,
 		Protocol:    ctx.Protocol,
@@ -121,34 +121,27 @@ func (h *Handler) Resolve(w dns.ResponseWriter, r *dns.Msg, ctx RequestContext) 
 
 func (h *Handler) identifyDevice(ctx RequestContext) (*config.Device, string) {
 	var d *config.Device
-	mac := ctx.ClientMAC
+	id := ctx.ClientID
 
-	// 1. Ensure we have a MAC if possible
-	if mac == "" && ctx.ClientIP != "" {
-		if foundMac, err := h.DeviceManager.GetMAC(ctx.ClientIP); err == nil && foundMac != "" {
-			mac = foundMac
-		}
+	// 1. Try ID Lookup first (Prioritized)
+	if id != "" {
+		d = h.DeviceManager.GetDeviceByID(id)
 	}
 
-	// 2. Try MAC Lookup first (Prioritized)
-	if mac != "" {
-		d = h.DeviceManager.GetDeviceByMAC(mac)
-	}
-
-	// 3. If not found by MAC, try IP Lookup
+	// 2. If not found by ID, try IP Lookup
 	if d == nil && ctx.ClientIP != "" {
 		d = h.DeviceManager.GetDeviceByIP(ctx.ClientIP)
 	}
 
-	// If found by IP and we don't have MAC yet, try to use MAC from config if available
-	if d != nil && mac == "" && d.MAC != "" {
-		mac = d.MAC
+	// If found by IP and we don't have ID yet, try to use ID from config if available
+	if d != nil && id == "" && d.ID != "" {
+		id = d.ID
 	}
 
-	return d, mac
+	return d, id
 }
 
-func (h *Handler) getDeviceDetails(d *config.Device, mac string) (string, string) {
+func (h *Handler) getDeviceDetails(d *config.Device, id string) (string, string) {
 	groupName := "default"
 	deviceName := "Unknown"
 	if d != nil {

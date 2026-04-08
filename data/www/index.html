@@ -108,7 +108,7 @@
                     <thead class="bg-gray-50">
                         <tr>
                             <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">名称</th>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">MAC / IP</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID / IP</th>
                             <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">设备组</th>
                             <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">操作</th>
                         </tr>
@@ -128,7 +128,7 @@
                     <thead class="bg-gray-50">
                         <tr>
                             <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">名称</th>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">MAC / IP</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID / IP</th>
                             <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">最后请求</th>
                             <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">查询次数</th>
                             <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">操作</th>
@@ -521,7 +521,7 @@
                         </td>
                         <td class="px-4 py-3 text-sm">
                             <div class="text-gray-900">${log.device_name || '-'}</div>
-                            <div class="text-xs text-gray-500">${log.device_ip} (${log.device_mac || '-'})</div>
+                            <div class="text-xs text-gray-500">${log.device_ip} (${log.device_id || '-'})</div>
                         </td>
                     `;
                     tbody.appendChild(tr);
@@ -543,7 +543,7 @@
                 <p><strong>类型:</strong> ${log.type}</p>
                 <p><strong>协议:</strong> ${log.protocol}</p>
                 <p><strong>设备:</strong> ${log.device_name ? (log.device_name + ' (' + log.device_ip + ')') : log.device_ip}</p>
-                <p><strong>MAC 地址:</strong> ${log.device_mac || '-'}</p>
+                <p><strong>设备 ID:</strong> ${log.device_id || '-'}</p>
             `;
             if (log.upstream) html += `<p><strong>上游 DNS:</strong> ${log.upstream}</p>`;
             if (log.rule) html += `<p><strong>规则:</strong> <span class="text-xs bg-gray-100 px-1 py-0.5 rounded">${log.rule}</span></p>`;
@@ -641,14 +641,14 @@
                         <td class="px-4 py-3 text-sm text-gray-900">${d.name}</td>
                         <td class="px-4 py-3 text-sm">
                             <div class="font-mono text-xs">
-                                <div>${d.mac || '-'}</div>
+                                <div>${d.id || '-'}</div>
                                 <div class="text-gray-500">${d.ip || '-'}</div>
                             </div>
                         </td>
                         <td class="px-4 py-3 text-sm text-gray-500">${d.device_group || 'default'}</td>
                         <td class="px-4 py-3 text-sm space-x-2">
-                            <button onclick="editDevice('${d.mac || ''}', '${d.ip || ''}', '${d.name}', '${d.device_group || ''}')" class="text-blue-600 hover:underline">编辑</button>
-                            <button onclick="confirmDelete('device', '${d.mac || ''}', '${d.ip || ''}')" class="text-red-600 hover:underline">删除</button>
+                            <button onclick="editDevice('${d.id || ''}', '${d.ip || ''}', '${d.name}', '${d.device_group || ''}')" class="text-blue-600 hover:underline">编辑</button>
+                            <button onclick="confirmDelete('device', '${d.id || ''}', '${d.ip || ''}')" class="text-red-600 hover:underline">删除</button>
                         </td>
                     `;
                     tbody.appendChild(tr);
@@ -674,14 +674,14 @@
                         <td class="px-4 py-3 text-sm text-gray-900">${d.name || 'Unknown'}</td>
                         <td class="px-4 py-3 text-sm">
                             <div class="font-mono text-xs">
-                                <div>${d.mac || '-'}</div>
+                                <div>${d.id || '-'}</div>
                                 <div class="text-gray-500">${d.ip}</div>
                             </div>
                         </td>
                         <td class="px-4 py-3 text-sm text-gray-500">${lastSeen.toLocaleString()}</td>
                         <td class="px-4 py-3 text-sm text-gray-500">${d.query_count}</td>
                         <td class="px-4 py-3 text-sm">
-                            <button onclick="addActiveAsDevice('${d.mac || ''}', '${d.name || ''}', '${d.ip}')" class="text-green-600 hover:underline">添加为设备</button>
+                            <button onclick="addActiveAsDevice('${d.id || ''}', '${d.name || ''}', '${d.ip}')" class="text-green-600 hover:underline">添加为设备</button>
                         </td>
                     `;
                     tbody.appendChild(tr);
@@ -689,7 +689,7 @@
             } catch (e) { console.error(e); }
         }
 
-        async function addActiveAsDevice(mac, name, ip) {
+        async function addActiveAsDevice(id, name, ip) {
             let groups = [];
             try {
                 const res = await fetch('/api/device-groups');
@@ -700,8 +700,8 @@
             document.getElementById('modal-edit-content').innerHTML = `
                 <div><label class="block text-sm font-medium mb-1">名称</label><input type="text" id="edit-name" value="${name !== 'Unknown' ? name : ''}" class="w-full border rounded px-3 py-2"></div>
                 <div><label class="block text-sm font-medium mb-1">IP 地址</label><input type="text" id="edit-ip" class="w-full border rounded px-3 py-2"></div>
-                <div><label class="block text-sm font-medium mb-1">MAC 地址</label><input type="text" id="edit-mac" class="w-full border rounded px-3 py-2"></div>
-                <p class="text-xs text-gray-400">IP 和 MAC 地址只需填写一个</p>
+                <div><label class="block text-sm font-medium mb-1">设备 ID</label><input type="text" id="edit-id" class="w-full border rounded px-3 py-2"></div>
+                <p class="text-xs text-gray-400">IP 和 ID 只需填写一个</p>
                 <div>
                     <label class="block text-sm font-medium mb-1">设备组</label>
                     <select id="edit-group" class="w-full border rounded px-3 py-2">
@@ -711,26 +711,26 @@
                 </div>
             `;
 
-            // Pre-fill IP and MAC from active device
+            // Pre-fill IP and ID from the active device
             if (ip) document.getElementById('edit-ip').value = ip;
-            if (mac) document.getElementById('edit-mac').value = mac;
+            if (id) document.getElementById('edit-id').value = id;
 
             document.getElementById('modal-edit-save').onclick = async () => {
                 const deviceGroup = document.getElementById('edit-group').value;
                 const editIp = document.getElementById('edit-ip').value.trim();
-                const editMac = document.getElementById('edit-mac').value.trim();
+                const editID = document.getElementById('edit-id').value.trim();
                 if (!deviceGroup) {
                     showAlert('请选择设备组');
                     return;
                 }
-                if (!editIp && !editMac) {
-                    showAlert('请填写 IP 或 MAC 地址');
+                if (!editIp && !editID) {
+                    showAlert('请填写 IP 或 ID');
                     return;
                 }
                 const res = await fetch('/api/devices', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ name: document.getElementById('edit-name').value, ip: editIp, mac: editMac, device_group: deviceGroup })
+                    body: JSON.stringify({ name: document.getElementById('edit-name').value, ip: editIp, id: editID, device_group: deviceGroup })
                 });
                 if (!res.ok) showAlert('添加失败: ' + await res.text());
                 closeModal('modal-edit');
@@ -751,8 +751,8 @@
             document.getElementById('modal-edit-content').innerHTML = `
                 <div><label class="block text-sm font-medium mb-1">名称</label><input type="text" id="edit-name" class="w-full border rounded px-3 py-2"></div>
                 <div><label class="block text-sm font-medium mb-1">IP 地址</label><input type="text" id="edit-ip" class="w-full border rounded px-3 py-2"></div>
-                <div><label class="block text-sm font-medium mb-1">MAC 地址</label><input type="text" id="edit-mac" class="w-full border rounded px-3 py-2"></div>
-                <p class="text-xs text-gray-400">IP 和 MAC 地址只需填写一个</p>
+                <div><label class="block text-sm font-medium mb-1">设备 ID</label><input type="text" id="edit-id" class="w-full border rounded px-3 py-2"></div>
+                <p class="text-xs text-gray-400">IP 和 ID 只需填写一个</p>
                 <div>
                     <label class="block text-sm font-medium mb-1">设备组</label>
                     <select id="edit-group" class="w-full border rounded px-3 py-2">
@@ -764,19 +764,19 @@
             document.getElementById('modal-edit-save').onclick = async () => {
                 const deviceGroup = document.getElementById('edit-group').value;
                 const editIp = document.getElementById('edit-ip').value.trim();
-                const editMac = document.getElementById('edit-mac').value.trim();
+                const editID = document.getElementById('edit-id').value.trim();
                 if (!deviceGroup) {
                     showAlert('请选择设备组');
                     return;
                 }
-                if (!editIp && !editMac) {
-                    showAlert('请填写 IP 或 MAC 地址');
+                if (!editIp && !editID) {
+                    showAlert('请填写 IP 或 ID');
                     return;
                 }
                 const res = await fetch('/api/devices', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ name: document.getElementById('edit-name').value, ip: editIp, mac: editMac, device_group: deviceGroup })
+                    body: JSON.stringify({ name: document.getElementById('edit-name').value, ip: editIp, id: editID, device_group: deviceGroup })
                 });
                 if (!res.ok) showAlert('添加失败: ' + await res.text());
                 closeModal('modal-edit');
@@ -785,7 +785,7 @@
             openModal('modal-edit');
         }
 
-        async function editDevice(oldMac, oldIp, name, group) {
+        async function editDevice(oldId, oldIp, name, group) {
             let groups = [];
             try {
                 const res = await fetch('/api/device-groups');
@@ -796,8 +796,8 @@
             document.getElementById('modal-edit-content').innerHTML = `
                 <div><label class="block text-sm font-medium mb-1">名称</label><input type="text" id="edit-name" value="${name}" class="w-full border rounded px-3 py-2"></div>
                 <div><label class="block text-sm font-medium mb-1">IP 地址</label><input type="text" id="edit-ip" value="${oldIp}" class="w-full border rounded px-3 py-2"></div>
-                <div><label class="block text-sm font-medium mb-1">MAC 地址</label><input type="text" id="edit-mac" value="${oldMac}" class="w-full border rounded px-3 py-2"></div>
-                <p class="text-xs text-gray-400">IP 和 MAC 地址只需填写一个</p>
+                <div><label class="block text-sm font-medium mb-1">设备 ID</label><input type="text" id="edit-id" value="${oldId}" class="w-full border rounded px-3 py-2"></div>
+                <p class="text-xs text-gray-400">IP 和 ID 只需填写一个</p>
                 <div>
                     <label class="block text-sm font-medium mb-1">设备组</label>
                     <select id="edit-group" class="w-full border rounded px-3 py-2">
@@ -809,19 +809,19 @@
             document.getElementById('modal-edit-save').onclick = async () => {
                 const deviceGroup = document.getElementById('edit-group').value;
                 const editIp = document.getElementById('edit-ip').value.trim();
-                const editMac = document.getElementById('edit-mac').value.trim();
+                const editID = document.getElementById('edit-id').value.trim();
                 if (!deviceGroup) {
                     showAlert('请选择设备组');
                     return;
                 }
-                if (!editIp && !editMac) {
-                    showAlert('请填写 IP 或 MAC 地址');
+                if (!editIp && !editID) {
+                    showAlert('请填写 IP 或 ID');
                     return;
                 }
                 const res = await fetch('/api/devices', {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ old_mac: oldMac, old_ip: oldIp, name: document.getElementById('edit-name').value, ip: editIp, mac: editMac, device_group: deviceGroup })
+                    body: JSON.stringify({ old_id: oldId, old_ip: oldIp, name: document.getElementById('edit-name').value, ip: editIp, id: editID, device_group: deviceGroup })
                 });
                 if (!res.ok) showAlert('更新失败: ' + await res.text());
                 closeModal('modal-edit');
@@ -1432,7 +1432,7 @@
             if (deleteType === 'rewrite') url = '/api/rewrites?name=' + encodeURIComponent(deleteKey);
             else if (deleteType === 'device') {
                 if (deleteKey) {
-                    url = '/api/devices?mac=' + encodeURIComponent(deleteKey);
+                    url = '/api/devices?id=' + encodeURIComponent(deleteKey);
                 } else if (deleteIp) {
                     url = '/api/devices?ip=' + encodeURIComponent(deleteIp);
                 }

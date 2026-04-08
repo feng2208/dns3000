@@ -55,7 +55,7 @@ func (e *Engine) AddRule(r *Rule) {
 type RequestInfo struct {
 	Domain      string // Queried domain
 	ClientIP    string
-	ClientMAC   string
+	ClientID    string
 	ClientName  string
 	DeviceGroup string
 	Protocol    string
@@ -152,7 +152,7 @@ func (e *Engine) Match(domain string, info RequestInfo) *Rule {
 // checkModifiers returns matched bool and a specificity score.
 // Score:
 // 0: Generic match (no client modifier)
-// 1000: Exact Client IP/MAC match
+// 1000: Exact client IP/ID/name match
 // 1-128: CIDR match (Mask size, larger is more specific) (for IPv4 max 32, IPv6 128)
 func (e *Engine) checkModifiers(r *Rule, info RequestInfo) (bool, int) {
 	if len(r.Modifiers) == 0 {
@@ -162,7 +162,7 @@ func (e *Engine) checkModifiers(r *Rule, info RequestInfo) (bool, int) {
 	score := 0
 
 	// 1. client
-	// client=IP,name,MAC... | ~client (negation)
+	// client=IP,name,ID... | ~client (negation)
 	if val, ok := r.Modifiers["client"]; ok {
 		// Support multiple values separated by |
 		parts := strings.Split(val, "|")
@@ -186,7 +186,7 @@ func (e *Engine) checkModifiers(r *Rule, info RequestInfo) (bool, int) {
 			var currentScore int
 
 			// 1. Exact match
-			if target == info.ClientIP || target == info.ClientMAC || target == info.ClientName {
+			if target == info.ClientIP || target == info.ClientID || target == info.ClientName {
 				isMatch = true
 				currentScore = 1000
 			} else if strings.Contains(target, "/") {

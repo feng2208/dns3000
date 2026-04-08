@@ -19,7 +19,7 @@ type QueryLog struct {
 	RuleSource string    `json:"rule_source,omitempty"`
 	DeviceIP   string    `json:"device_ip"`
 	DeviceName string    `json:"device_name"`
-	DeviceMAC  string    `json:"device_mac"`
+	DeviceID   string    `json:"device_id"`
 	Upstream   string    `json:"upstream,omitempty"`
 	Response   string    `json:"response,omitempty"` // Short summary
 	LatencyMs  float64   `json:"latency_ms"`

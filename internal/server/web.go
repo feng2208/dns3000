@@ -321,8 +321,8 @@ func (ws *WebServer) handleDevices(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "Device group is required", 400)
 			return
 		}
-		if device.MAC == "" && device.IP == "" {
-			http.Error(w, "MAC or IP is required", 400)
+		if device.ID == "" && device.IP == "" {
+			http.Error(w, "ID or IP is required", 400)
 			return
 		}
 		ws.Cfg.Devices = append(ws.Cfg.Devices, device)
@@ -333,11 +333,11 @@ func (ws *WebServer) handleDevices(w http.ResponseWriter, r *http.Request) {
 
 	if r.Method == "PUT" {
 		var req struct {
-			OldMAC      string `json:"old_mac"`
+			OldID       string `json:"old_id"`
 			OldIP       string `json:"old_ip"`
 			Name        string `json:"name"`
 			IP          string `json:"ip"`
-			MAC         string `json:"mac"`
+			ID          string `json:"id"`
 			DeviceGroup string `json:"device_group"`
 		}
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -348,21 +348,21 @@ func (ws *WebServer) handleDevices(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "Device group is required", 400)
 			return
 		}
-		if req.MAC == "" && req.IP == "" {
-			http.Error(w, "MAC or IP is required", 400)
+		if req.ID == "" && req.IP == "" {
+			http.Error(w, "ID or IP is required", 400)
 			return
 		}
 		for i, d := range ws.Cfg.Devices {
 			match := false
-			if req.OldMAC != "" && d.MAC == req.OldMAC {
+			if req.OldID != "" && d.ID == req.OldID {
 				match = true
-			} else if req.OldMAC == "" && req.OldIP != "" && d.IP == req.OldIP {
+			} else if req.OldID == "" && req.OldIP != "" && d.IP == req.OldIP {
 				match = true
 			}
 			if match {
 				ws.Cfg.Devices[i].Name = req.Name
 				ws.Cfg.Devices[i].IP = req.IP
-				ws.Cfg.Devices[i].MAC = req.MAC
+				ws.Cfg.Devices[i].ID = req.ID
 				ws.Cfg.Devices[i].DeviceGroup = req.DeviceGroup
 				break
 			}
@@ -373,14 +373,14 @@ func (ws *WebServer) handleDevices(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if r.Method == "DELETE" {
-		mac := r.URL.Query().Get("mac")
+		id := r.URL.Query().Get("id")
 		ip := r.URL.Query().Get("ip")
 		newDevices := []config.Device{}
 		for _, d := range ws.Cfg.Devices {
 			keep := true
-			if mac != "" && d.MAC == mac {
+			if id != "" && d.ID == id {
 				keep = false
-			} else if mac == "" && ip != "" && d.IP == ip {
+			} else if id == "" && ip != "" && d.IP == ip {
 				keep = false
 			}
 			if keep {

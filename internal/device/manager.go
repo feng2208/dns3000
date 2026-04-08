@@ -8,7 +8,7 @@ import (
 
 type ActiveDevice struct {
 	IP         string    `json:"ip"`
-	MAC        string    `json:"mac"`
+	ID         string    `json:"id"`
 	Name       string    `json:"name"`
 	LastSeen   time.Time `json:"last_seen"`
 	QueryCount int       `json:"query_count"`
@@ -16,9 +16,9 @@ type ActiveDevice struct {
 
 type Manager struct {
 	cfg           *config.Config
-	devices       map[string]*config.Device // keyed by MAC
+	devices       map[string]*config.Device // keyed by ID
 	devicesByIP   map[string]*config.Device // keyed by IP
-	activeDevices map[string]*ActiveDevice  // keyed by IP
+	activeDevices map[string]*ActiveDevice  // keyed by ID when present, otherwise IP
 	mu            sync.RWMutex
 }
 
@@ -31,8 +31,8 @@ func NewManager(cfg *config.Config) *Manager {
 	}
 	for i := range cfg.Devices {
 		d := &cfg.Devices[i]
-		if d.MAC != "" {
-			m.devices[d.MAC] = d
+		if d.ID != "" {
+			m.devices[d.ID] = d
 		}
 		if d.IP != "" {
 			m.devicesByIP[d.IP] = d
@@ -41,10 +41,10 @@ func NewManager(cfg *config.Config) *Manager {
 	return m
 }
 
-func (m *Manager) GetDeviceByMAC(mac string) *config.Device {
+func (m *Manager) GetDeviceByID(id string) *config.Device {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
-	return m.devices[mac]
+	return m.devices[id]
 }
 
 func (m *Manager) GetDeviceByIP(ip string) *config.Device {
@@ -54,41 +54,35 @@ func (m *Manager) GetDeviceByIP(ip string) *config.Device {
 }
 
 // RecordActivity records a device's activity for the active devices list
-func (m *Manager) RecordActivity(ip, mac, name string) {
+func (m *Manager) RecordActivity(ip, id, name string) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
 	key := ip
-	if mac != "" {
-		key = mac
+	if id != "" {
+		key = id
 	}
 
 	if ad, ok := m.activeDevices[key]; ok {
 		ad.LastSeen = time.Now()
 		ad.QueryCount++
-		if mac != "" {
-			ad.MAC = mac
+		if id != "" {
+			ad.ID = id
 		}
-		// If entry was keyed by IP but we now have MAC, correct the content if needed?
-		// Actually if key == mac, ad.MAC is redundant but fine.
 		if name != "" && name != "Unknown" {
 			ad.Name = name
 		}
-		// Update IP if it changed for this MAC
 		if ip != "" {
 			ad.IP = ip
 		}
 	} else {
-		// Check if we have an old entry by IP that we should migrate or just delete?
-		// If we are keying by MAC, we might have an old entry keyed by IP.
-		// It's safer to remove the IP-keyed entry to avoid duplicates in the list.
-		if mac != "" {
+		if id != "" {
 			delete(m.activeDevices, ip)
 		}
 
 		m.activeDevices[key] = &ActiveDevice{
 			IP:         ip,
-			MAC:        mac,
+			ID:         id,
 			Name:       name,
 			LastSeen:   time.Now(),
 			QueryCount: 1,
@@ -111,12 +105,6 @@ func (m *Manager) GetActiveDevices() []ActiveDevice {
 	return result
 }
 
-// GetMAC returns the MAC address for an IP, potentially using ARP.
-func (m *Manager) GetMAC(ip string) (string, error) {
-	return GetMAC(ip)
-}
-
-// Reload reloads devices from config
 func (m *Manager) Reload(cfg *config.Config) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -125,21 +113,20 @@ func (m *Manager) Reload(cfg *config.Config) {
 	m.devicesByIP = make(map[string]*config.Device)
 	for i := range m.cfg.Devices {
 		d := &m.cfg.Devices[i]
-		if d.MAC != "" {
-			m.devices[d.MAC] = d
+		if d.ID != "" {
+			m.devices[d.ID] = d
 		}
 		if d.IP != "" {
 			m.devicesByIP[d.IP] = d
 		}
 	}
 
-	// Refresh active devices metadata
+	// Refresh active device names from the latest config.
 	for _, ad := range m.activeDevices {
-		// Reset name to "Unknown" or verify
 		ad.Name = "Unknown"
 		var d *config.Device
-		if ad.MAC != "" {
-			d = m.devices[ad.MAC]
+		if ad.ID != "" {
+			d = m.devices[ad.ID]
 		}
 		if d == nil && ad.IP != "" {
 			d = m.devicesByIP[ad.IP]

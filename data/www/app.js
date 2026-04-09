@@ -53,6 +53,21 @@
         if (el) el.textContent = value;
     }
 
+    function setNavMenuOpen(isOpen) {
+        const navLinks = byId('app-nav-links');
+        const toggleButton = byId('nav-menu-toggle');
+        if (!navLinks || !toggleButton) return;
+
+        navLinks.classList.toggle('hidden', !isOpen);
+        toggleButton.setAttribute('aria-expanded', String(isOpen));
+    }
+
+    function toggleNavMenu() {
+        const navLinks = byId('app-nav-links');
+        if (!navLinks) return;
+        setNavMenuOpen(!navLinks.classList.contains('is-open'));
+    }
+
     async function request(url, options = {}) {
         const response = await fetch(url, options);
         if (!response.ok) {
@@ -169,6 +184,7 @@
 
     async function showTab(tabName) {
         state.currentTab = tabName;
+        setNavMenuOpen(false);
         $$('[id^="tab-"]').forEach((el) => el.classList.add('hidden'));
         byId(`tab-${tabName}`)?.classList.remove('hidden');
 
@@ -180,6 +196,15 @@
         const currentNav = byId(`nav-${tabName}`);
         currentNav?.classList.add('text-primary', 'font-semibold');
         currentNav?.classList.remove('text-gray-600');
+
+        $$('.nav-link-mobile').forEach((el) => {
+            el.classList.remove('text-primary', 'bg-blue-50');
+            el.classList.add('text-gray-700');
+        });
+
+        const currentMobileNav = byId(`nav-${tabName}-mobile`);
+        currentMobileNav?.classList.add('text-primary', 'bg-blue-50');
+        currentMobileNav?.classList.remove('text-gray-700');
 
         if (tabName === 'dashboard') {
             await Promise.allSettled([
@@ -1208,6 +1233,7 @@
         const index = Number.parseInt(element.dataset.index || '-1', 10);
 
         if (action === 'nav-tab') return showTab(element.dataset.tab);
+        if (action === 'toggle-nav-menu') return toggleNavMenu();
         if (action === 'logout') return logout();
         if (action === 'save-settings') return saveSettings();
         if (action === 'refresh-active-devices') return fetchActiveDevices();

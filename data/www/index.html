@@ -19,18 +19,31 @@
     <link rel="stylesheet" href="index.css">
 </head>
 <body class="bg-gray-100 min-h-screen">
-    <nav class="bg-white shadow-lg">
-        <div class="max-w-7xl mx-auto px-4">
-            <div class="flex justify-between h-16">
+    <nav class="bg-white shadow-lg border-b border-gray-200">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex h-16 items-center justify-between">
                 <div class="flex items-center">
                     <span class="text-xl font-bold text-gray-800">dns3000</span>
                 </div>
-                <div class="flex items-center space-x-4">
+                <div class="hidden md:flex items-center gap-4">
                     <a href="#" id="nav-dashboard" data-action="nav-tab" data-tab="dashboard" class="nav-link text-primary font-semibold">仪表盘</a>
                     <a href="#" id="nav-rewrites" data-action="nav-tab" data-tab="rewrites" class="nav-link text-gray-600 hover:text-gray-900">DNS 重写</a>
                     <a href="#" id="nav-logs" data-action="nav-tab" data-tab="logs" class="nav-link text-gray-600 hover:text-gray-900">查询日志</a>
                     <a href="#" data-action="logout" class="nav-link text-gray-600 hover:text-gray-900 border-l pl-4 ml-2">退出登录</a>
                 </div>
+                <div class="md:hidden">
+                    <button type="button" data-action="toggle-nav-menu" id="nav-menu-toggle" class="inline-flex items-center justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50" aria-expanded="false" aria-controls="app-nav-links">
+                        菜单
+                    </button>
+                </div>
+            </div>
+        </div>
+        <div id="app-nav-links" class="hidden border-t border-gray-200 bg-white md:hidden">
+            <div class="space-y-1 px-4 py-3">
+                <a href="#" id="nav-dashboard-mobile" data-action="nav-tab" data-tab="dashboard" class="nav-link-mobile block rounded-lg px-4 py-3 text-base font-medium text-primary bg-blue-50">仪表盘</a>
+                <a href="#" id="nav-rewrites-mobile" data-action="nav-tab" data-tab="rewrites" class="nav-link-mobile block rounded-lg px-4 py-3 text-base font-medium text-gray-700 hover:bg-gray-50">DNS 重写</a>
+                <a href="#" id="nav-logs-mobile" data-action="nav-tab" data-tab="logs" class="nav-link-mobile block rounded-lg px-4 py-3 text-base font-medium text-gray-700 hover:bg-gray-50">查询日志</a>
+                <a href="#" data-action="logout" class="block rounded-lg px-4 py-3 text-base font-medium text-red-600 hover:bg-red-50">退出登录</a>
             </div>
         </div>
     </nav>
@@ -49,25 +62,25 @@
 
             <section class="panel-card panel-card-body space-y-4">
                 <h3 class="section-title">设置</h3>
-                <div class="flex items-center space-x-4">
+                <div class="settings-row flex items-center space-x-4">
                     <label for="log-count-input" class="text-gray-700 w-40">保存查询日志数量:</label>
                     <input type="number" id="log-count-input" class="border rounded px-3 py-2 w-48" min="100" max="50000">
                 </div>
-                <div class="flex items-center space-x-4">
+                <div class="settings-row flex items-center space-x-4">
                     <label for="rule-update-interval-input" class="text-gray-700 w-40">规则更新间隔:</label>
                     <input type="text" id="rule-update-interval-input" class="border rounded px-3 py-2 w-48" placeholder="如 24h, 1h30m">
                     <span class="form-help">支持格式: 24h, 1h, 30m</span>
                 </div>
-                <button type="button" data-action="save-settings" class="bg-primary text-white px-6 py-2 rounded hover:bg-blue-600 transition-colors">保存设置</button>
+                <button type="button" data-action="save-settings" class="settings-submit bg-primary text-white px-6 py-2 rounded hover:bg-blue-600 transition-colors">保存设置</button>
             </section>
 
             <section class="panel-card">
-                <div class="panel-card-body flex justify-between items-center">
+                <div class="panel-card-body section-header flex justify-between items-center">
                     <h3 class="section-title">设备列表</h3>
                     <button type="button" data-action="show-add-device-modal" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">+ 添加设备</button>
                 </div>
                 <div class="table-shell">
-                    <table class="table-base divide-y divide-gray-200">
+                    <table class="table-base table-devices divide-y divide-gray-200">
                         <thead><tr><th>名称</th><th>ID / IP</th><th>规则组</th><th>操作</th></tr></thead>
                         <tbody id="devices-table-body" class="bg-white divide-y divide-gray-200"></tbody>
                     </table>
@@ -75,7 +88,7 @@
             </section>
 
             <section class="panel-card">
-                <div class="panel-card-body flex justify-between items-center">
+                <div class="panel-card-body section-header flex justify-between items-center">
                     <div>
                         <h3 class="section-title">活跃设备</h3>
                         <p class="text-sm text-gray-500 mt-1">显示过去 24 小时内有请求的设备</p>
@@ -83,7 +96,7 @@
                     <button type="button" data-action="refresh-active-devices" class="text-primary hover:underline text-sm">刷新</button>
                 </div>
                 <div class="table-shell">
-                    <table class="table-base divide-y divide-gray-200">
+                    <table class="table-base table-active-devices divide-y divide-gray-200">
                         <thead><tr><th>名称</th><th>ID / IP</th><th>最后请求</th><th>查询次数</th><th>操作</th></tr></thead>
                         <tbody id="active-devices-table-body" class="bg-white divide-y divide-gray-200"></tbody>
                     </table>
@@ -91,12 +104,12 @@
             </section>
 
             <section class="panel-card">
-                <div class="panel-card-body flex justify-between items-center">
+                <div class="panel-card-body section-header flex justify-between items-center">
                     <h3 class="section-title">规则组</h3>
                     <button type="button" data-action="show-add-rule-group-modal" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">+ 添加规则组</button>
                 </div>
                 <div class="table-shell">
-                    <table class="table-base divide-y divide-gray-200">
+                    <table class="table-base table-rule-groups divide-y divide-gray-200">
                         <thead><tr><th>名称</th><th>来源</th><th>操作</th></tr></thead>
                         <tbody id="rule-groups-table-body" class="bg-white divide-y divide-gray-200"></tbody>
                     </table>
@@ -104,36 +117,36 @@
             </section>
 
             <section class="panel-card">
-                <div class="panel-card-body flex justify-between items-center">
+                <div class="panel-card-body section-header flex justify-between items-center">
                     <h3 class="section-title">服务列表</h3>
                     <button type="button" data-action="show-add-service-modal" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">+ 添加服务</button>
                 </div>
                 <div class="table-shell">
-                    <table class="table-base divide-y divide-gray-200">
+                    <table class="table-base table-services divide-y divide-gray-200">
                         <thead><tr><th>名称</th><th>类型</th><th>操作</th></tr></thead>
                         <tbody id="services-table-body" class="bg-white divide-y divide-gray-200"></tbody>
                     </table>
                 </div>
             </section>
 
-            <section class="panel-card panel-card-body space-y-4">
+            <section class="panel-card panel-card-body space-y-4 upstreams-section">
                 <h3 class="section-title">上游 DNS 服务</h3>
-                <div>
+                <div class="upstreams-field">
                     <label for="upstreams-default" class="block text-sm font-medium text-gray-700 mb-1">默认上游</label>
                     <textarea id="upstreams-default" rows="3" class="w-full border rounded px-3 py-2" placeholder="每行一个，例如 1.0.0.1"></textarea>
                 </div>
-                <div>
+                <div class="upstreams-field">
                     <label for="upstreams-rules" class="block text-sm font-medium text-gray-700 mb-1">路由规则</label>
                     <textarea id="upstreams-rules" rows="4" class="w-full border rounded px-3 py-2"></textarea>
                     <p class="mt-1 text-xs text-gray-500">示例: [/domain/]upstream 或 [device-id-or-ip]upstream</p>
                 </div>
-                <button type="button" data-action="save-upstreams" class="bg-primary text-white px-4 py-2 rounded hover:bg-blue-600">保存上游配置</button>
+                <button type="button" data-action="save-upstreams" class="upstreams-submit bg-primary text-white px-4 py-2 rounded hover:bg-blue-600">保存上游配置</button>
             </section>
         </section>
 
         <section id="tab-logs" class="hidden space-y-6">
             <h2 class="text-2xl font-bold">查询日志</h2>
-            <div class="panel-card panel-card-body flex flex-wrap gap-4 items-center">
+            <div class="panel-card panel-card-body logs-filter-bar flex flex-wrap gap-4 items-center">
                 <input type="text" id="filter-domain" placeholder="域名" class="border rounded px-3 py-2 flex-1 min-w-[150px]">
                 <input type="text" id="filter-device" placeholder="设备 IP / 名称" class="border rounded px-3 py-2 flex-1 min-w-[150px]">
                 <select id="filter-status" class="border rounded px-3 py-2">
@@ -146,14 +159,14 @@
             </div>
             <section class="panel-card">
                 <div class="table-shell">
-                    <table class="table-base divide-y divide-gray-200">
+                    <table class="table-base table-logs divide-y divide-gray-200">
                         <thead><tr><th>时间</th><th>请求</th><th>状态 / 规则</th><th>设备</th></tr></thead>
                         <tbody id="logs-table-body" class="bg-white divide-y divide-gray-200"></tbody>
                     </table>
                 </div>
-                <div class="px-4 py-3 bg-gray-50 flex items-center justify-between">
+                <div class="logs-pagination px-4 py-3 bg-gray-50 flex items-center justify-between">
                     <span id="logs-info" class="text-sm text-gray-700"></span>
-                    <div class="flex space-x-2">
+                    <div class="logs-pagination-controls flex space-x-2">
                         <button type="button" id="btn-prev" data-action="logs-prev" class="px-3 py-1 border rounded disabled:opacity-50">上一页</button>
                         <span id="page-info" class="px-3 py-1"></span>
                         <button type="button" id="btn-next" data-action="logs-next" class="px-3 py-1 border rounded disabled:opacity-50">下一页</button>
@@ -165,20 +178,20 @@
         <section id="tab-rewrites" class="hidden space-y-6">
             <h2 class="text-2xl font-bold">DNS 重写</h2>
             <section class="panel-card panel-card-body">
-                <div class="flex flex-wrap gap-2 mb-4">
+                <div class="rewrites-form flex flex-wrap gap-2 mb-4">
                     <input type="text" id="rewrite-name" placeholder="域名，例如 example.com 或 *.example.com" class="flex-1 min-w-[200px] border rounded px-3 py-2">
                     <input type="text" id="rewrite-value" placeholder="IP 或域名" class="flex-1 min-w-[150px] border rounded px-3 py-2">
                     <button type="button" data-action="add-rewrite" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">添加</button>
                 </div>
                 <div class="table-shell">
-                    <table class="table-base divide-y divide-gray-200">
+                    <table class="table-base table-rewrites divide-y divide-gray-200">
                         <thead><tr><th>域名</th><th>响应</th><th>操作</th></tr></thead>
                         <tbody id="rewrites-table-body" class="bg-white divide-y divide-gray-200"></tbody>
                     </table>
                 </div>
-                <div class="px-4 py-3 bg-gray-50 flex items-center justify-between border-t">
+                <div class="rewrites-pagination px-4 py-3 bg-gray-50 flex items-center justify-between border-t">
                     <span id="rewrites-info" class="text-sm text-gray-700"></span>
-                    <div class="flex space-x-2">
+                    <div class="rewrites-pagination-controls flex space-x-2">
                         <button type="button" id="rewrites-btn-prev" data-action="rewrites-prev" class="px-3 py-1 border rounded disabled:opacity-50 text-sm">上一页</button>
                         <span id="rewrites-page-info" class="px-3 py-1 text-sm"></span>
                         <button type="button" id="rewrites-btn-next" data-action="rewrites-next" class="px-3 py-1 border rounded disabled:opacity-50 text-sm">下一页</button>
@@ -189,20 +202,24 @@
     </main>
 
     <div id="modal-log-details" class="modal-overlay fixed inset-0 bg-gray-600 bg-opacity-50 items-center justify-center z-50">
-        <div class="bg-white rounded-lg shadow-xl max-w-lg w-full mx-4 p-6">
-            <h3 class="text-lg font-semibold mb-4">日志详情</h3>
-            <div id="modal-log-content" class="space-y-2 text-sm"></div>
-            <div class="mt-4 text-right">
+        <div class="modal-panel bg-white rounded-lg shadow-xl max-w-lg">
+            <div class="p-6">
+                <h3 class="text-lg font-semibold mb-4">日志详情</h3>
+                <div id="modal-log-content" class="modal-content-scroll space-y-2 text-sm max-h-[60vh] pr-1"></div>
+            </div>
+            <div class="px-6 pb-6 text-right">
                 <button type="button" data-action="modal-close" data-modal-id="modal-log-details" class="bg-gray-200 px-4 py-2 rounded hover:bg-gray-300">关闭</button>
             </div>
         </div>
     </div>
 
     <div id="modal-edit" class="modal-overlay fixed inset-0 bg-gray-600 bg-opacity-50 items-center justify-center z-50">
-        <div class="bg-white rounded-lg shadow-xl max-w-lg w-full mx-4 p-6">
-            <h3 id="modal-edit-title" class="text-lg font-semibold mb-4">编辑</h3>
-            <div id="modal-edit-content" class="space-y-4"></div>
-            <div class="mt-4 flex justify-end space-x-2">
+        <div class="modal-panel bg-white rounded-lg shadow-xl max-w-lg">
+            <div class="p-6">
+                <h3 id="modal-edit-title" class="text-lg font-semibold mb-4">编辑</h3>
+                <div id="modal-edit-content" class="modal-content-scroll space-y-4 max-h-[60vh] pr-1"></div>
+            </div>
+            <div class="px-6 pb-6 flex justify-end space-x-2">
                 <button type="button" data-action="modal-close" data-modal-id="modal-edit" class="bg-gray-200 px-4 py-2 rounded hover:bg-gray-300">取消</button>
                 <button type="button" id="modal-edit-save" data-action="modal-save" class="bg-primary text-white px-4 py-2 rounded hover:bg-blue-600">保存</button>
             </div>

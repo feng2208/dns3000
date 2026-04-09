@@ -1,6 +1,7 @@
 package config
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -27,7 +28,7 @@ type AuthConfig struct {
 
 type UpstreamsConfig struct {
 	Default []string `yaml:"default" json:"default"`
-	Rules   []string `yaml:"rules" json:"rules"` // Parsed later: [/domain/]upstream or [device-id-or-ip]upstream
+	Rules   []string `yaml:"rules" json:"rules"` // Parsed later: [/domain/]upstream
 }
 
 type Device struct {
@@ -122,6 +123,9 @@ func Load(dir string) (*Config, error) {
 	if err := yaml.Unmarshal(data, &cfg); err != nil {
 		return nil, err
 	}
+	if err := ValidateUpstreamRules(cfg.Upstreams.Rules); err != nil {
+		return nil, fmt.Errorf("invalid upstream rules: %w", err)
+	}
 	// Set default log count if 0 (though 0 might be valid, requirement says default 20000)
 	if cfg.LogCount == 0 {
 		cfg.LogCount = 20000
@@ -169,44 +173,65 @@ func (c *Config) Save(dir string) error {
 
 type UpstreamRoute struct {
 	DomainRoutes map[string][]string
-	DeviceRoutes map[string][]string
 }
 
-func (c *Config) ParseUpstreamRoutes() *UpstreamRoute {
+func ValidateUpstreamRules(rules []string) error {
+	for i, rule := range rules {
+		if strings.TrimSpace(rule) == "" {
+			continue
+		}
+		if _, _, err := parseUpstreamRule(rule); err != nil {
+			return fmt.Errorf("rule %d: %w", i+1, err)
+		}
+	}
+	return nil
+}
+
+func parseUpstreamRule(rule string) (string, []string, error) {
+	rule = strings.TrimSpace(rule)
+	if rule == "" {
+		return "", nil, nil
+	}
+	if !strings.HasPrefix(rule, "[/") {
+		return "", nil, fmt.Errorf("must use format [/domain/]upstream")
+	}
+
+	endIdx := strings.Index(rule, "/]")
+	if endIdx == -1 {
+		return "", nil, fmt.Errorf("must use format [/domain/]upstream")
+	}
+
+	domain := strings.ToLower(strings.TrimSuffix(strings.TrimSpace(rule[2:endIdx]), "."))
+	if domain == "" {
+		return "", nil, fmt.Errorf("domain cannot be empty")
+	}
+	if strings.Contains(domain, "/") {
+		return "", nil, fmt.Errorf("domain cannot contain '/'")
+	}
+
+	upstreamPart := strings.TrimSpace(rule[endIdx+2:])
+	upstreams := strings.Fields(upstreamPart)
+	if len(upstreams) == 0 {
+		return "", nil, fmt.Errorf("must specify at least one upstream")
+	}
+
+	return domain, upstreams, nil
+}
+
+func (c *Config) ParseUpstreamRoutes() (*UpstreamRoute, error) {
 	routes := &UpstreamRoute{
 		DomainRoutes: make(map[string][]string),
-		DeviceRoutes: make(map[string][]string),
 	}
 
 	for _, rule := range c.Upstreams.Rules {
-		rule = strings.TrimSpace(rule)
-		if rule == "" {
+		domain, upstreams, err := parseUpstreamRule(rule)
+		if err != nil {
+			return nil, err
+		}
+		if domain == "" {
 			continue
 		}
-
-		// Domain Rule: [/example.com/]upstream
-		if strings.HasPrefix(rule, "[/") {
-			endIdx := strings.Index(rule, "/]")
-			if endIdx != -1 {
-				domain := rule[2:endIdx]
-				upstreamPart := strings.TrimSpace(rule[endIdx+2:])
-				upstreams := strings.Fields(upstreamPart)
-				routes.DomainRoutes[domain] = upstreams
-			}
-			continue
-		}
-
-		// Device Rule: [device-id-or-ip]upstream
-		if strings.HasPrefix(rule, "[") {
-			endIdx := strings.Index(rule, "]")
-			if endIdx != -1 {
-				deviceKey := rule[1:endIdx]
-				upstreamPart := strings.TrimSpace(rule[endIdx+1:])
-				upstreams := strings.Fields(upstreamPart)
-				routes.DeviceRoutes[deviceKey] = upstreams
-			}
-			continue
-		}
+		routes.DomainRoutes[domain] = upstreams
 	}
-	return routes
+	return routes, nil
 }

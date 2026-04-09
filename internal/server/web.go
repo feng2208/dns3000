@@ -532,11 +532,20 @@ func (ws *WebServer) handleUpstreams(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, err.Error(), 400)
 			return
 		}
+		if err := config.ValidateUpstreamRules(upstreams.Rules); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
 		ws.Cfg.Upstreams = upstreams
-		ws.Cfg.Save(ws.DataDir)
+		if err := ws.Cfg.Save(ws.DataDir); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
 		go ws.Reload()
 		return
 	}
+
+	http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 }
 
 func (ws *WebServer) requireAuth(next http.HandlerFunc) http.HandlerFunc {

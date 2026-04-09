@@ -1,5 +1,6 @@
 ﻿<!DOCTYPE html>
 <html lang="zh-CN">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -18,21 +19,30 @@
     </script>
     <link rel="stylesheet" href="index.css">
 </head>
+
 <body class="min-h-screen bg-slate-100 text-slate-900">
     <nav class="border-b border-slate-200 bg-white/90 shadow-sm backdrop-blur">
         <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <div class="flex h-16 items-center justify-between">
                 <div class="flex items-center">
-                    <a href="#" data-action="nav-tab" data-tab="dashboard" class="text-xl font-bold tracking-tight text-slate-900 transition-colors hover:text-primary">dns3000</a>
+                    <a href="#" data-action="nav-tab" data-tab="dashboard"
+                        class="text-xl font-bold tracking-tight text-slate-900 transition-colors hover:text-primary">dns3000</a>
                 </div>
                 <div class="hidden md:flex items-center gap-4">
-                    <a href="#" id="nav-dashboard" data-action="nav-tab" data-tab="dashboard" class="nav-link rounded-full px-3 py-2 text-sm font-semibold text-primary transition-colors">仪表盘</a>
-                    <a href="#" id="nav-rewrites" data-action="nav-tab" data-tab="rewrites" class="nav-link rounded-full px-3 py-2 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900">DNS 重写</a>
-                    <a href="#" id="nav-logs" data-action="nav-tab" data-tab="logs" class="nav-link rounded-full px-3 py-2 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900">查询日志</a>
-                    <a href="#" data-action="logout" class="nav-link ml-2 border-l border-slate-200 pl-4 text-sm font-medium text-slate-600 transition-colors hover:text-slate-900">退出登录</a>
+                    <a href="#" id="nav-dashboard" data-action="nav-tab" data-tab="dashboard"
+                        class="nav-link rounded-full px-3 py-2 text-sm font-semibold text-primary transition-colors">仪表盘</a>
+                    <a href="#" id="nav-rewrites" data-action="nav-tab" data-tab="rewrites"
+                        class="nav-link rounded-full px-3 py-2 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900">DNS
+                        重写</a>
+                    <a href="#" id="nav-logs" data-action="nav-tab" data-tab="logs"
+                        class="nav-link rounded-full px-3 py-2 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900">查询日志</a>
+                    <a href="#" data-action="logout"
+                        class="nav-link ml-2 border-l border-slate-200 pl-4 text-sm font-medium text-slate-600 transition-colors hover:text-slate-900">退出登录</a>
                 </div>
                 <div class="md:hidden">
-                    <button type="button" data-action="toggle-nav-menu" id="nav-menu-toggle" class="inline-flex items-center justify-center rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm transition-colors hover:bg-slate-50" aria-expanded="false" aria-controls="app-nav-links">
+                    <button type="button" data-action="toggle-nav-menu" id="nav-menu-toggle"
+                        class="inline-flex items-center justify-center rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm transition-colors hover:bg-slate-50"
+                        aria-expanded="false" aria-controls="app-nav-links">
                         菜单
                     </button>
                 </div>
@@ -40,10 +50,15 @@
         </div>
         <div id="app-nav-links" class="hidden border-t border-slate-200 bg-white md:hidden">
             <div class="space-y-1 px-4 py-3">
-                <a href="#" id="nav-dashboard-mobile" data-action="nav-tab" data-tab="dashboard" class="nav-link-mobile block rounded-2xl bg-blue-50 px-4 py-3 text-base font-medium text-primary">仪表盘</a>
-                <a href="#" id="nav-rewrites-mobile" data-action="nav-tab" data-tab="rewrites" class="nav-link-mobile block rounded-2xl px-4 py-3 text-base font-medium text-slate-700 transition-colors hover:bg-slate-50">DNS 重写</a>
-                <a href="#" id="nav-logs-mobile" data-action="nav-tab" data-tab="logs" class="nav-link-mobile block rounded-2xl px-4 py-3 text-base font-medium text-slate-700 transition-colors hover:bg-slate-50">查询日志</a>
-                <a href="#" data-action="logout" class="block rounded-lg px-4 py-3 text-base font-medium text-red-600 hover:bg-red-50">退出登录</a>
+                <a href="#" id="nav-dashboard-mobile" data-action="nav-tab" data-tab="dashboard"
+                    class="nav-link-mobile block rounded-2xl bg-blue-50 px-4 py-3 text-base font-medium text-primary">仪表盘</a>
+                <a href="#" id="nav-rewrites-mobile" data-action="nav-tab" data-tab="rewrites"
+                    class="nav-link-mobile block rounded-2xl px-4 py-3 text-base font-medium text-slate-700 transition-colors hover:bg-slate-50">DNS
+                    重写</a>
+                <a href="#" id="nav-logs-mobile" data-action="nav-tab" data-tab="logs"
+                    class="nav-link-mobile block rounded-2xl px-4 py-3 text-base font-medium text-slate-700 transition-colors hover:bg-slate-50">查询日志</a>
+                <a href="#" data-action="logout"
+                    class="block rounded-lg px-4 py-3 text-base font-medium text-red-600 hover:bg-red-50">退出登录</a>
             </div>
         </div>
     </nav>
@@ -53,36 +68,74 @@
             <h2 class="text-2xl font-bold tracking-tight text-slate-900">仪表盘</h2>
 
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
-                <div class="overflow-hidden rounded-3xl border border-slate-200 bg-white p-6 shadow-sm"><h3 class="text-sm font-semibold uppercase tracking-[0.2em] text-slate-500">总查询数</h3><p id="stat-total" class="mt-3 text-3xl font-bold text-primary">-</p></div>
-                <div class="overflow-hidden rounded-3xl border border-slate-200 bg-white p-6 shadow-sm"><h3 class="text-sm font-semibold uppercase tracking-[0.2em] text-slate-500">已拦截</h3><p id="stat-blocked" class="mt-3 text-3xl font-bold text-red-500">-</p></div>
-                <div class="overflow-hidden rounded-3xl border border-slate-200 bg-white p-6 shadow-sm"><h3 class="text-sm font-semibold uppercase tracking-[0.2em] text-slate-500">已重写</h3><p id="stat-rewritten" class="mt-3 text-3xl font-bold text-amber-500">-</p></div>
-                <div class="overflow-hidden rounded-3xl border border-slate-200 bg-white p-6 shadow-sm"><h3 class="text-sm font-semibold uppercase tracking-[0.2em] text-slate-500">已放行</h3><p id="stat-allowed" class="mt-3 text-3xl font-bold text-emerald-500">-</p></div>
-                <div class="overflow-hidden rounded-3xl border border-slate-200 bg-white p-6 shadow-sm"><h3 class="text-sm font-semibold uppercase tracking-[0.2em] text-slate-500">拦截率</h3><p id="stat-percentage" class="mt-3 text-3xl font-bold text-orange-500">-</p></div>
+                <div class="overflow-hidden rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+                    <h3 class="text-sm font-semibold uppercase tracking-[0.2em] text-slate-500">总查询数</h3>
+                    <p id="stat-total" class="mt-3 text-3xl font-bold text-primary">-</p>
+                </div>
+                <div class="overflow-hidden rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+                    <h3 class="text-sm font-semibold uppercase tracking-[0.2em] text-slate-500">已拦截</h3>
+                    <p id="stat-blocked" class="mt-3 text-3xl font-bold text-red-500">-</p>
+                </div>
+                <div class="overflow-hidden rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+                    <h3 class="text-sm font-semibold uppercase tracking-[0.2em] text-slate-500">已重写</h3>
+                    <p id="stat-rewritten" class="mt-3 text-3xl font-bold text-amber-500">-</p>
+                </div>
+                <div class="overflow-hidden rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+                    <h3 class="text-sm font-semibold uppercase tracking-[0.2em] text-slate-500">已放行</h3>
+                    <p id="stat-allowed" class="mt-3 text-3xl font-bold text-emerald-500">-</p>
+                </div>
+                <div class="overflow-hidden rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+                    <h3 class="text-sm font-semibold uppercase tracking-[0.2em] text-slate-500">拦截率</h3>
+                    <p id="stat-percentage" class="mt-3 text-3xl font-bold text-orange-500">-</p>
+                </div>
             </div>
 
             <section class="space-y-4 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
                 <h3 class="text-xl font-bold tracking-tight text-slate-900">设置</h3>
                 <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
-                    <label for="log-count-input" class="w-full text-sm font-medium text-slate-700 sm:w-40">保存查询日志数量:</label>
-                    <input type="number" id="log-count-input" class="w-full rounded-2xl border border-slate-300 px-4 py-2.5 text-slate-900 shadow-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-blue-100 sm:w-56" min="100" max="50000">
+                    <label for="log-count-input"
+                        class="w-full text-sm font-medium text-slate-700 sm:w-40">保存查询日志数量:</label>
+                    <input type="number" id="log-count-input"
+                        class="w-full rounded-2xl border border-slate-300 px-4 py-2.5 text-slate-900 shadow-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-blue-100 sm:w-56"
+                        min="100" max="50000">
                 </div>
                 <div class="flex flex-col gap-2 lg:flex-row lg:items-center lg:gap-4">
-                    <label for="rule-update-interval-input" class="w-full text-sm font-medium text-slate-700 lg:w-40">规则更新间隔:</label>
-                    <input type="text" id="rule-update-interval-input" class="w-full rounded-2xl border border-slate-300 px-4 py-2.5 text-slate-900 shadow-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-blue-100 lg:w-56" placeholder="如 24h, 1h30m">
+                    <label for="rule-update-interval-input"
+                        class="w-full text-sm font-medium text-slate-700 lg:w-40">规则更新间隔:</label>
+                    <input type="text" id="rule-update-interval-input"
+                        class="w-full rounded-2xl border border-slate-300 px-4 py-2.5 text-slate-900 shadow-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-blue-100 lg:w-56"
+                        placeholder="如 24h, 1h30m">
                     <span class="text-xs text-slate-500">支持格式: 24h, 1h, 30m</span>
                 </div>
-                <button type="button" data-action="save-settings" class="w-full rounded-2xl bg-primary px-6 py-3 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-blue-600 sm:w-auto">保存设置</button>
+                <button type="button" data-action="save-settings"
+                    class="w-full rounded-2xl bg-primary px-6 py-3 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-blue-600 sm:w-auto">保存设置</button>
             </section>
 
             <section class="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
-                <div class="flex flex-col gap-3 border-b border-slate-200 px-5 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+                <div
+                    class="flex flex-col gap-3 border-b border-slate-200 px-5 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-6">
                     <h3 class="text-xl font-bold tracking-tight text-slate-900">设备列表</h3>
-                    <button type="button" data-action="show-add-device-modal" class="w-full rounded-2xl bg-emerald-500 px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-emerald-600 sm:w-auto">+ 添加设备</button>
+                    <button type="button" data-action="show-add-device-modal"
+                        class="w-full rounded-2xl bg-emerald-500 px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-emerald-600 sm:w-auto">+
+                        添加设备</button>
                 </div>
                 <div class="overflow-x-auto">
                     <table class="min-w-[42rem] divide-y divide-slate-200 md:min-w-full">
                         <thead class="bg-slate-50">
-                            <tr><th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">名称</th><th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">ID / IP</th><th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">规则组</th><th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">操作</th></tr>
+                            <tr>
+                                <th
+                                    class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
+                                    名称</th>
+                                <th
+                                    class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
+                                    ID / IP</th>
+                                <th
+                                    class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
+                                    规则组</th>
+                                <th
+                                    class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
+                                    操作</th>
+                            </tr>
                         </thead>
                         <tbody id="devices-table-body" class="divide-y divide-slate-200 bg-white"></tbody>
                     </table>
@@ -90,17 +143,35 @@
             </section>
 
             <section class="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
-                <div class="flex flex-col gap-3 border-b border-slate-200 px-5 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+                <div
+                    class="flex flex-col gap-3 border-b border-slate-200 px-5 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-6">
                     <div>
                         <h3 class="text-xl font-bold tracking-tight text-slate-900">活跃设备</h3>
                         <p class="mt-1 text-sm text-slate-500">显示过去 24 小时内有请求的设备</p>
                     </div>
-                    <button type="button" data-action="refresh-active-devices" class="text-sm font-semibold text-primary transition hover:underline">刷新</button>
+                    <button type="button" data-action="refresh-active-devices"
+                        class="text-sm font-semibold text-primary transition hover:underline">刷新</button>
                 </div>
                 <div class="overflow-x-auto">
                     <table class="min-w-[42rem] divide-y divide-slate-200 md:min-w-full">
                         <thead class="bg-slate-50">
-                            <tr><th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">名称</th><th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">ID / IP</th><th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">最后请求</th><th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">查询次数</th><th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">操作</th></tr>
+                            <tr>
+                                <th
+                                    class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
+                                    名称</th>
+                                <th
+                                    class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
+                                    ID / IP</th>
+                                <th
+                                    class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
+                                    最后请求</th>
+                                <th
+                                    class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
+                                    查询次数</th>
+                                <th
+                                    class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
+                                    操作</th>
+                            </tr>
                         </thead>
                         <tbody id="active-devices-table-body" class="divide-y divide-slate-200 bg-white"></tbody>
                     </table>
@@ -108,14 +179,27 @@
             </section>
 
             <section class="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
-                <div class="flex flex-col gap-3 border-b border-slate-200 px-5 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+                <div
+                    class="flex flex-col gap-3 border-b border-slate-200 px-5 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-6">
                     <h3 class="text-xl font-bold tracking-tight text-slate-900">规则组</h3>
-                    <button type="button" data-action="show-add-rule-group-modal" class="w-full rounded-2xl bg-emerald-500 px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-emerald-600 sm:w-auto">+ 添加规则组</button>
+                    <button type="button" data-action="show-add-rule-group-modal"
+                        class="w-full rounded-2xl bg-emerald-500 px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-emerald-600 sm:w-auto">+
+                        添加规则组</button>
                 </div>
                 <div class="overflow-x-auto">
                     <table class="min-w-[42rem] divide-y divide-slate-200 md:min-w-full">
                         <thead class="bg-slate-50">
-                            <tr><th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">名称</th><th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">来源</th><th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">操作</th></tr>
+                            <tr>
+                                <th
+                                    class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
+                                    名称</th>
+                                <th
+                                    class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
+                                    来源</th>
+                                <th
+                                    class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
+                                    操作</th>
+                            </tr>
                         </thead>
                         <tbody id="rule-groups-table-body" class="divide-y divide-slate-200 bg-white"></tbody>
                     </table>
@@ -123,14 +207,27 @@
             </section>
 
             <section class="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
-                <div class="flex flex-col gap-3 border-b border-slate-200 px-5 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+                <div
+                    class="flex flex-col gap-3 border-b border-slate-200 px-5 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-6">
                     <h3 class="text-xl font-bold tracking-tight text-slate-900">服务列表</h3>
-                    <button type="button" data-action="show-add-service-modal" class="w-full rounded-2xl bg-emerald-500 px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-emerald-600 sm:w-auto">+ 添加服务</button>
+                    <button type="button" data-action="show-add-service-modal"
+                        class="w-full rounded-2xl bg-emerald-500 px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-emerald-600 sm:w-auto">+
+                        添加服务</button>
                 </div>
                 <div class="overflow-x-auto">
                     <table class="min-w-[42rem] divide-y divide-slate-200 md:min-w-full">
                         <thead class="bg-slate-50">
-                            <tr><th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">名称</th><th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">类型</th><th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">操作</th></tr>
+                            <tr>
+                                <th
+                                    class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
+                                    名称</th>
+                                <th
+                                    class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
+                                    类型</th>
+                                <th
+                                    class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
+                                    操作</th>
+                            </tr>
                         </thead>
                         <tbody id="services-table-body" class="divide-y divide-slate-200 bg-white"></tbody>
                     </table>
@@ -141,45 +238,72 @@
                 <h3 class="text-xl font-bold tracking-tight text-slate-900">上游 DNS 服务</h3>
                 <div>
                     <label for="upstreams-default" class="mb-1 block text-sm font-medium text-slate-700">默认上游</label>
-                    <textarea id="upstreams-default" rows="3" class="min-h-[6.5rem] w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm text-slate-900 shadow-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-blue-100" placeholder="每行一个，例如 1.0.0.1"></textarea>
+                    <textarea id="upstreams-default" rows="3"
+                        class="min-h-[6.5rem] w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm text-slate-900 shadow-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-blue-100"
+                        placeholder="每行一个，例如 1.0.0.1"></textarea>
                 </div>
                 <div>
                     <label for="upstreams-rules" class="mb-1 block text-sm font-medium text-slate-700">路由规则</label>
-                    <textarea id="upstreams-rules" rows="4" class="min-h-[6.5rem] w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm text-slate-900 shadow-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-blue-100"></textarea>
-                    <p class="mt-1 text-xs text-slate-500">示例: [/domain/]upstream 或 [device-id-or-ip]upstream</p>
+                    <textarea id="upstreams-rules" rows="4"
+                        class="min-h-[6.5rem] w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm text-slate-900 shadow-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-blue-100"
+                        placeholder="每行一个，例如 [/example.com/]1.1.1.1 8.8.8.8"></textarea>
+                    <p class="mt-1 text-xs text-slate-500">格式: [/domain/]upstream</p>
                 </div>
-                <button type="button" data-action="save-upstreams" class="w-full rounded-2xl bg-primary px-4 py-3 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-blue-600 sm:w-auto">保存上游配置</button>
+                <button type="button" data-action="save-upstreams"
+                    class="w-full rounded-2xl bg-primary px-4 py-3 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-blue-600 sm:w-auto">保存上游配置</button>
             </section>
         </section>
 
         <section id="tab-logs" class="hidden space-y-6">
             <h2 class="text-2xl font-bold tracking-tight text-slate-900">查询日志</h2>
-            <div class="flex flex-col gap-3 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:flex-row sm:flex-wrap sm:items-center sm:gap-4 sm:p-6">
-                <input type="text" id="filter-domain" placeholder="域名" class="min-w-0 flex-1 rounded-2xl border border-slate-300 px-4 py-2.5 text-slate-900 shadow-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-blue-100 sm:min-w-[150px]">
-                <input type="text" id="filter-device" placeholder="设备 IP / 名称" class="min-w-0 flex-1 rounded-2xl border border-slate-300 px-4 py-2.5 text-slate-900 shadow-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-blue-100 sm:min-w-[150px]">
-                <select id="filter-status" class="rounded-2xl border border-slate-300 px-4 py-2.5 text-slate-900 shadow-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-blue-100">
+            <div
+                class="flex flex-col gap-3 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:flex-row sm:flex-wrap sm:items-center sm:gap-4 sm:p-6">
+                <input type="text" id="filter-domain" placeholder="域名"
+                    class="min-w-0 flex-1 rounded-2xl border border-slate-300 px-4 py-2.5 text-slate-900 shadow-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-blue-100 sm:min-w-[150px]">
+                <input type="text" id="filter-device" placeholder="设备 IP / 名称"
+                    class="min-w-0 flex-1 rounded-2xl border border-slate-300 px-4 py-2.5 text-slate-900 shadow-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-blue-100 sm:min-w-[150px]">
+                <select id="filter-status"
+                    class="rounded-2xl border border-slate-300 px-4 py-2.5 text-slate-900 shadow-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-blue-100">
                     <option value="">全部状态</option>
                     <option value="Blocked">已拦截</option>
                     <option value="Allowed">已放行</option>
                     <option value="Rewritten">已重写</option>
                 </select>
-                <button type="button" data-action="fetch-logs" class="w-full rounded-2xl bg-primary px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-blue-600 sm:w-auto">搜索</button>
+                <button type="button" data-action="fetch-logs"
+                    class="w-full rounded-2xl bg-primary px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-blue-600 sm:w-auto">搜索</button>
             </div>
             <section class="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
                 <div class="overflow-x-auto">
                     <table class="min-w-[42rem] divide-y divide-slate-200 md:min-w-full">
                         <thead class="bg-slate-50">
-                            <tr><th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">时间</th><th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">请求</th><th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">状态 / 规则</th><th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">设备</th></tr>
+                            <tr>
+                                <th
+                                    class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
+                                    时间</th>
+                                <th
+                                    class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
+                                    请求</th>
+                                <th
+                                    class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
+                                    状态 / 规则</th>
+                                <th
+                                    class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
+                                    设备</th>
+                            </tr>
                         </thead>
                         <tbody id="logs-table-body" class="divide-y divide-slate-200 bg-white"></tbody>
                     </table>
                 </div>
-                <div class="flex flex-col gap-3 border-t border-slate-200 bg-slate-50 px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
+                <div
+                    class="flex flex-col gap-3 border-t border-slate-200 bg-slate-50 px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
                     <span id="logs-info" class="text-sm text-slate-700"></span>
                     <div class="flex items-center gap-2">
-                        <button type="button" id="btn-prev" data-action="logs-prev" class="flex-1 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition disabled:cursor-not-allowed disabled:opacity-50 sm:flex-none">上一页</button>
-                        <span id="page-info" class="min-w-[5rem] px-3 py-2 text-center text-sm font-medium text-slate-700"></span>
-                        <button type="button" id="btn-next" data-action="logs-next" class="flex-1 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition disabled:cursor-not-allowed disabled:opacity-50 sm:flex-none">下一页</button>
+                        <button type="button" id="btn-prev" data-action="logs-prev"
+                            class="flex-1 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition disabled:cursor-not-allowed disabled:opacity-50 sm:flex-none">上一页</button>
+                        <span id="page-info"
+                            class="min-w-[5rem] px-3 py-2 text-center text-sm font-medium text-slate-700"></span>
+                        <button type="button" id="btn-next" data-action="logs-next"
+                            class="flex-1 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition disabled:cursor-not-allowed disabled:opacity-50 sm:flex-none">下一页</button>
                     </div>
                 </div>
             </section>
@@ -189,24 +313,41 @@
             <h2 class="text-2xl font-bold tracking-tight text-slate-900">DNS 重写</h2>
             <section class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
                 <div class="mb-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
-                    <input type="text" id="rewrite-name" placeholder="域名，例如 example.com 或 *.example.com" class="min-w-0 flex-1 rounded-2xl border border-slate-300 px-4 py-2.5 text-slate-900 shadow-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-blue-100 sm:min-w-[200px]">
-                    <input type="text" id="rewrite-value" placeholder="IP 或域名" class="min-w-0 flex-1 rounded-2xl border border-slate-300 px-4 py-2.5 text-slate-900 shadow-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-blue-100 sm:min-w-[150px]">
-                    <button type="button" data-action="add-rewrite" class="w-full rounded-2xl bg-emerald-500 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-emerald-600 sm:w-auto">添加</button>
+                    <input type="text" id="rewrite-name" placeholder="域名，例如 example.com 或 *.example.com"
+                        class="min-w-0 flex-1 rounded-2xl border border-slate-300 px-4 py-2.5 text-slate-900 shadow-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-blue-100 sm:min-w-[200px]">
+                    <input type="text" id="rewrite-value" placeholder="IP 或域名"
+                        class="min-w-0 flex-1 rounded-2xl border border-slate-300 px-4 py-2.5 text-slate-900 shadow-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-blue-100 sm:min-w-[150px]">
+                    <button type="button" data-action="add-rewrite"
+                        class="w-full rounded-2xl bg-emerald-500 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-emerald-600 sm:w-auto">添加</button>
                 </div>
                 <div class="overflow-x-auto">
                     <table class="min-w-[42rem] divide-y divide-slate-200 md:min-w-full">
                         <thead class="bg-slate-50">
-                            <tr><th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">域名</th><th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">响应</th><th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">操作</th></tr>
+                            <tr>
+                                <th
+                                    class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
+                                    域名</th>
+                                <th
+                                    class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
+                                    响应</th>
+                                <th
+                                    class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
+                                    操作</th>
+                            </tr>
                         </thead>
                         <tbody id="rewrites-table-body" class="divide-y divide-slate-200 bg-white"></tbody>
                     </table>
                 </div>
-                <div class="mt-4 flex flex-col gap-3 border-t border-slate-200 bg-slate-50 px-4 py-4 sm:-mx-6 sm:-mb-6 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+                <div
+                    class="mt-4 flex flex-col gap-3 border-t border-slate-200 bg-slate-50 px-4 py-4 sm:-mx-6 sm:-mb-6 sm:flex-row sm:items-center sm:justify-between sm:px-6">
                     <span id="rewrites-info" class="text-sm text-slate-700"></span>
                     <div class="flex items-center gap-2">
-                        <button type="button" id="rewrites-btn-prev" data-action="rewrites-prev" class="flex-1 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition disabled:cursor-not-allowed disabled:opacity-50 sm:flex-none">上一页</button>
-                        <span id="rewrites-page-info" class="min-w-[5rem] px-3 py-2 text-center text-sm font-medium text-slate-700"></span>
-                        <button type="button" id="rewrites-btn-next" data-action="rewrites-next" class="flex-1 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition disabled:cursor-not-allowed disabled:opacity-50 sm:flex-none">下一页</button>
+                        <button type="button" id="rewrites-btn-prev" data-action="rewrites-prev"
+                            class="flex-1 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition disabled:cursor-not-allowed disabled:opacity-50 sm:flex-none">上一页</button>
+                        <span id="rewrites-page-info"
+                            class="min-w-[5rem] px-3 py-2 text-center text-sm font-medium text-slate-700"></span>
+                        <button type="button" id="rewrites-btn-next" data-action="rewrites-next"
+                            class="flex-1 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition disabled:cursor-not-allowed disabled:opacity-50 sm:flex-none">下一页</button>
                     </div>
                 </div>
             </section>
@@ -217,10 +358,12 @@
         <div class="modal-panel max-w-lg rounded-3xl bg-white shadow-2xl ring-1 ring-slate-200/80">
             <div class="p-6">
                 <h3 class="mb-4 text-lg font-semibold text-slate-900">日志详情</h3>
-                <div id="modal-log-content" class="modal-content-scroll max-h-[60vh] space-y-2 pr-1 text-sm text-slate-700"></div>
+                <div id="modal-log-content"
+                    class="modal-content-scroll max-h-[60vh] space-y-2 pr-1 text-sm text-slate-700"></div>
             </div>
             <div class="px-6 pb-6 text-right">
-                <button type="button" data-action="modal-close" data-modal-id="modal-log-details" class="rounded-2xl bg-slate-200 px-4 py-2 text-sm font-medium text-slate-800 transition-colors hover:bg-slate-300">关闭</button>
+                <button type="button" data-action="modal-close" data-modal-id="modal-log-details"
+                    class="rounded-2xl bg-slate-200 px-4 py-2 text-sm font-medium text-slate-800 transition-colors hover:bg-slate-300">关闭</button>
             </div>
         </div>
     </div>
@@ -232,21 +375,28 @@
                 <div id="modal-edit-content" class="modal-content-scroll space-y-4 max-h-[60vh] pr-1"></div>
             </div>
             <div class="flex justify-end space-x-2 px-6 pb-6">
-                <button type="button" data-action="modal-close" data-modal-id="modal-edit" class="rounded-2xl bg-slate-200 px-4 py-2 text-sm font-medium text-slate-800 transition-colors hover:bg-slate-300">取消</button>
-                <button type="button" id="modal-edit-save" data-action="modal-save" class="rounded-2xl bg-primary px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-blue-600">保存</button>
+                <button type="button" data-action="modal-close" data-modal-id="modal-edit"
+                    class="rounded-2xl bg-slate-200 px-4 py-2 text-sm font-medium text-slate-800 transition-colors hover:bg-slate-300">取消</button>
+                <button type="button" id="modal-edit-save" data-action="modal-save"
+                    class="rounded-2xl bg-primary px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-blue-600">保存</button>
             </div>
         </div>
     </div>
 
     <div id="modal-alert" class="modal-overlay fixed inset-0 z-[60] items-center justify-center bg-slate-950/45">
-        <div class="mx-4 w-full max-w-sm overflow-hidden rounded-3xl bg-white shadow-2xl ring-1 ring-slate-200/80 transition-all">
+        <div
+            class="mx-4 w-full max-w-sm overflow-hidden rounded-3xl bg-white shadow-2xl ring-1 ring-slate-200/80 transition-all">
             <div id="modal-alert-header" class="flex items-center space-x-3 border-b px-6 py-4">
-                <div id="modal-alert-icon" class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full"></div>
+                <div id="modal-alert-icon"
+                    class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full"></div>
                 <h3 id="modal-alert-title" class="text-lg font-bold text-slate-900">提示</h3>
             </div>
-            <div class="px-6 py-4"><p id="modal-alert-message" class="text-sm leading-relaxed text-slate-600"></p></div>
+            <div class="px-6 py-4">
+                <p id="modal-alert-message" class="text-sm leading-relaxed text-slate-600"></p>
+            </div>
             <div class="flex justify-end bg-slate-50 px-6 py-4">
-                <button type="button" data-action="modal-close" data-modal-id="modal-alert" class="rounded-2xl bg-slate-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-900 focus:ring-offset-2">确定</button>
+                <button type="button" data-action="modal-close" data-modal-id="modal-alert"
+                    class="rounded-2xl bg-slate-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-900 focus:ring-offset-2">确定</button>
             </div>
         </div>
     </div>
@@ -256,12 +406,15 @@
             <h3 class="mb-4 text-lg font-semibold text-slate-900">确认删除</h3>
             <p id="modal-confirm-text" class="mb-4 text-sm leading-relaxed text-slate-600"></p>
             <div class="flex justify-end space-x-2">
-                <button type="button" data-action="modal-close" data-modal-id="modal-confirm" class="rounded-2xl bg-slate-200 px-4 py-2 text-sm font-medium text-slate-800 transition-colors hover:bg-slate-300">取消</button>
-                <button type="button" id="modal-confirm-btn" data-action="modal-confirm-delete" class="rounded-2xl bg-red-500 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-red-600">删除</button>
+                <button type="button" data-action="modal-close" data-modal-id="modal-confirm"
+                    class="rounded-2xl bg-slate-200 px-4 py-2 text-sm font-medium text-slate-800 transition-colors hover:bg-slate-300">取消</button>
+                <button type="button" id="modal-confirm-btn" data-action="modal-confirm-delete"
+                    class="rounded-2xl bg-red-500 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-red-600">删除</button>
             </div>
         </div>
     </div>
 
     <script src="app.js"></script>
 </body>
+
 </html>

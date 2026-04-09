@@ -69,7 +69,10 @@ func main() {
 	cache := dns.NewCache()
 
 	// Parse Upstream Routes
-	upstreamRoutes := cfg.ParseUpstreamRoutes()
+	upstreamRoutes, err := cfg.ParseUpstreamRoutes()
+	if err != nil {
+		log.Fatalf("Failed to parse upstream routes: %v", err)
+	}
 
 	rewriteEngine := dns.NewRewriteEngine(cfg.Rewrites)
 

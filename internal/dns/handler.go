@@ -6,6 +6,7 @@ import (
 	"dns3000/internal/logging"
 	"dns3000/internal/rules"
 	"fmt"
+	"log"
 	"net"
 	"strings"
 	"sync"
@@ -26,9 +27,15 @@ type Handler struct {
 }
 
 func (h *Handler) Reload(cfg *config.Config) {
+	upstreamRoutes, err := cfg.ParseUpstreamRoutes()
+	if err != nil {
+		log.Printf("Warning: Failed to parse upstream routes during reload: %v", err)
+		return
+	}
+
 	h.mu.Lock()
 	h.Cfg = cfg
-	h.UpstreamRoutes = cfg.ParseUpstreamRoutes()
+	h.UpstreamRoutes = upstreamRoutes
 	h.RewriteEngine = NewRewriteEngine(cfg.Rewrites)
 	h.mu.Unlock()
 
@@ -73,7 +80,10 @@ func (h *Handler) Resolve(w dns.ResponseWriter, r *dns.Msg, ctx RequestContext) 
 
 	// 1. Identify Device
 	d, clientID := h.identifyDevice(ctx)
-	deviceRouteKey, deviceName := h.getDeviceDetails(d, clientID, ctx.ClientIP)
+	deviceName := "Unknown"
+	if d != nil {
+		deviceName = d.Name
+	}
 
 	// Record activity
 	h.DeviceManager.RecordActivity(ctx.ClientIP, clientID, deviceName)
@@ -89,7 +99,7 @@ func (h *Handler) Resolve(w dns.ResponseWriter, r *dns.Msg, ctx RequestContext) 
 	}
 
 	// 2. Check Rewrites (Exact and Wildcard)
-	if h.checkRewrites(w, r, domain, deviceRouteKey, q, &logEntry) {
+	if h.checkRewrites(w, r, domain, q, &logEntry) {
 		return
 	}
 
@@ -111,12 +121,12 @@ func (h *Handler) Resolve(w dns.ResponseWriter, r *dns.Msg, ctx RequestContext) 
 	}
 
 	// 4. Check Cache
-	if h.checkCache(w, r, ctxKey, deviceRouteKey, &logEntry) {
+	if h.checkCache(w, r, ctxKey, &logEntry) {
 		return
 	}
 
 	// 5. Forward to Upstream
-	h.resolveUpstream(w, r, domain, deviceRouteKey, ctxKey, &logEntry)
+	h.resolveUpstream(w, r, domain, ctxKey, &logEntry)
 }
 
 func (h *Handler) identifyDevice(ctx RequestContext) (*config.Device, string) {
@@ -141,26 +151,8 @@ func (h *Handler) identifyDevice(ctx RequestContext) (*config.Device, string) {
 	return d, id
 }
 
-func (h *Handler) getDeviceDetails(d *config.Device, id, ip string) (string, string) {
-	deviceRouteKey := "default"
-	deviceName := "Unknown"
-	if d != nil {
-		deviceName = d.Name
-		if d.ID != "" {
-			deviceRouteKey = d.ID
-		} else if d.IP != "" {
-			deviceRouteKey = d.IP
-		}
-	} else if id != "" {
-		deviceRouteKey = id
-	} else if ip != "" {
-		deviceRouteKey = ip
-	}
-	return deviceRouteKey, deviceName
-}
-
-func (h *Handler) checkCache(w dns.ResponseWriter, r *dns.Msg, key, group string, logEntry *logging.QueryLog) bool {
-	cachedMsg, cachedStatus, ok := h.Cache.Get(key, group)
+func (h *Handler) checkCache(w dns.ResponseWriter, r *dns.Msg, key string, logEntry *logging.QueryLog) bool {
+	cachedMsg, cachedStatus, ok := h.Cache.Get(key)
 	if !ok {
 		return false
 	}
@@ -173,7 +165,7 @@ func (h *Handler) checkCache(w dns.ResponseWriter, r *dns.Msg, key, group string
 	return true
 }
 
-func (h *Handler) checkRewrites(w dns.ResponseWriter, r *dns.Msg, domain, group string, q dns.Question, logEntry *logging.QueryLog) bool {
+func (h *Handler) checkRewrites(w dns.ResponseWriter, r *dns.Msg, domain string, q dns.Question, logEntry *logging.QueryLog) bool {
 	rewriteVal := h.RewriteEngine.Match(domain)
 	if rewriteVal == "" {
 		return false
@@ -207,7 +199,7 @@ func (h *Handler) checkRewrites(w dns.ResponseWriter, r *dns.Msg, domain, group 
 	// Domain rewrite (CNAME behavior)
 	reqFn := r.Copy()
 	reqFn.Question[0].Name = dns.Fqdn(rewriteVal)
-	targetUpstreams := h.getUpstreams(domain, group)
+	targetUpstreams := h.getUpstreams(domain)
 	resp, upstream, err := ForwardToUpstream(reqFn, targetUpstreams)
 
 	if err == nil && resp != nil {
@@ -285,9 +277,9 @@ func (h *Handler) handleBlock(w dns.ResponseWriter, r *dns.Msg, rule *rules.Rule
 	h.Logger.Log(*logEntry)
 }
 
-func (h *Handler) resolveUpstream(w dns.ResponseWriter, r *dns.Msg, domain, group, key string, logEntry *logging.QueryLog) {
+func (h *Handler) resolveUpstream(w dns.ResponseWriter, r *dns.Msg, domain, key string, logEntry *logging.QueryLog) {
 	start := time.Now()
-	targetUpstreams := h.getUpstreams(domain, group)
+	targetUpstreams := h.getUpstreams(domain)
 	resp, upstream, err := ForwardToUpstream(r, targetUpstreams)
 
 	if err == nil && resp != nil {
@@ -301,7 +293,7 @@ func (h *Handler) resolveUpstream(w dns.ResponseWriter, r *dns.Msg, domain, grou
 				}
 			}
 		}
-		h.Cache.Set(key, group, resp, time.Duration(minTTL)*time.Second, "Allowed")
+		h.Cache.Set(key, resp, time.Duration(minTTL)*time.Second, "Allowed")
 		w.WriteMsg(resp)
 
 		logEntry.Status = "Allowed"
@@ -359,7 +351,7 @@ func summarizeResponse(msg *dns.Msg) string {
 	return res
 }
 
-func (h *Handler) getUpstreams(domain string, deviceRouteKey string) []string {
+func (h *Handler) getUpstreams(domain string) []string {
 	var targetUpstreams []string
 	var longestMatch string
 	for d, ups := range h.UpstreamRoutes.DomainRoutes {
@@ -368,11 +360,6 @@ func (h *Handler) getUpstreams(domain string, deviceRouteKey string) []string {
 				longestMatch = d
 				targetUpstreams = ups
 			}
-		}
-	}
-	if len(targetUpstreams) == 0 {
-		if ups, ok := h.UpstreamRoutes.DeviceRoutes[deviceRouteKey]; ok {
-			targetUpstreams = ups
 		}
 	}
 	if len(targetUpstreams) == 0 {

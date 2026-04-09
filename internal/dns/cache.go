@@ -26,12 +26,11 @@ func NewCache() *Cache {
 	}
 }
 
-func (c *Cache) Get(key string, group string) (*dns.Msg, string, bool) {
+func (c *Cache) Get(key string) (*dns.Msg, string, bool) {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 
-	fullKey := key + ":" + group
-	entry, ok := c.items[fullKey]
+	entry, ok := c.items[key]
 	if !ok {
 		return nil, "", false
 	}
@@ -66,7 +65,7 @@ func updateTTL(msg *dns.Msg, ttl time.Duration) {
 }
 
 // Set stores the message.
-func (c *Cache) Set(key string, group string, msg *dns.Msg, ttl time.Duration, status string) {
+func (c *Cache) Set(key string, msg *dns.Msg, ttl time.Duration, status string) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
@@ -79,10 +78,8 @@ func (c *Cache) Set(key string, group string, msg *dns.Msg, ttl time.Duration, s
 		finalTTL = 30 * time.Minute
 	}
 
-	fullKey := key + ":" + group
-
 	// Check if key already exists, if not, we might need to evict
-	_, exists := c.items[fullKey]
+	_, exists := c.items[key]
 	if !exists && len(c.items) >= maxCacheEntries {
 		// Eviction Strategy:
 		// 1. Remove all expired entries
@@ -110,7 +107,7 @@ func (c *Cache) Set(key string, group string, msg *dns.Msg, ttl time.Duration, s
 		}
 	}
 
-	c.items[fullKey] = CacheEntry{
+	c.items[key] = CacheEntry{
 		Msg:       msg.Copy(),
 		Status:    status,
 		ExpiresAt: time.Now().Add(finalTTL),

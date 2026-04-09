@@ -434,13 +434,13 @@ func (ws *WebServer) handleRuleGroups(w http.ResponseWriter, r *http.Request) {
 		name := r.URL.Query().Get("name")
 		// Prevent deleting the 'default' rule group
 		if name == "default" {
-			http.Error(w, "Cannot delete: 'default' rule group cannot be deleted", 400)
+			http.Error(w, "无法删除：不能删除默认规则组。", 400)
 			return
 		}
 		for _, d := range ws.Cfg.Devices {
 			for _, rg := range d.RuleGroups {
 				if rg.Name == name {
-					http.Error(w, "Cannot delete: rule group is in use by device", 400)
+					http.Error(w, "无法删除：有设备正在使用该规则组。", 400)
 					return
 				}
 			}
@@ -501,7 +501,7 @@ func (ws *WebServer) handleServices(w http.ResponseWriter, r *http.Request) {
 			for _, src := range rg.Sources {
 				for _, svcName := range src.Services {
 					if svcName == name {
-						http.Error(w, "Cannot delete: service is in use by rule group", 400)
+						http.Error(w, "无法删除：有规则组正在引用该服务。", 400)
 						return
 					}
 				}

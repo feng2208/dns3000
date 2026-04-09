@@ -1,0 +1,66 @@
+.modal-overlay {
+    display: none;
+}
+
+.modal-overlay.active {
+    display: flex;
+}
+
+.panel-card {
+    overflow: hidden;
+    border-radius: 0.75rem;
+    background: #fff;
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08), 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+.panel-card-body {
+    padding: 1.5rem;
+}
+
+.section-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #111827;
+}
+
+.table-shell {
+    overflow-x: auto;
+}
+
+.table-base {
+    min-width: 100%;
+}
+
+.table-base th {
+    background: #f9fafb;
+    color: #6b7280;
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.table-base td,
+.table-base th {
+    padding: 0.75rem 1rem;
+    text-align: left;
+    vertical-align: top;
+}
+
+.action-link {
+    color: #2563eb;
+}
+
+.action-link:hover,
+.action-link-danger:hover {
+    text-decoration: underline;
+}
+
+.action-link-danger {
+    color: #dc2626;
+}
+
+.form-help {
+    font-size: 0.75rem;
+    color: #6b7280;
+}

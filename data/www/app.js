@@ -540,6 +540,7 @@
         }
 
         items.forEach((device, index) => {
+            const canAddAsDevice = device.name === 'Unknown';
             const row = document.createElement('tr');
             row.innerHTML = `
                 <td class="px-4 py-3 text-sm text-gray-900">${escapeHtml(device.name || text.deviceUnknown)}</td>
@@ -556,6 +557,10 @@
                 </td>
             `;
             tbody.appendChild(row);
+            if (!canAddAsDevice) {
+                const actionButton = row.querySelector('[data-action="add-active-device"]');
+                actionButton?.remove();
+            }
         });
     }
 

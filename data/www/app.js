@@ -281,7 +281,14 @@
 
         logs.forEach((log, index) => {
             const row = document.createElement('tr');
-            row.className = 'cursor-pointer hover:bg-gray-50';
+            const rowClass = log.status === 'Blocked'
+                ? 'bg-red-50/80 hover:bg-red-100/80'
+                : log.status === 'Rewritten'
+                    ? 'bg-amber-50/80 hover:bg-amber-100/80'
+                    : log.status === 'Allowed'
+                        ? 'bg-emerald-50/70 hover:bg-emerald-100/70'
+                        : 'bg-white hover:bg-slate-50';
+            row.className = `cursor-pointer transition-colors ${rowClass}`;
             row.dataset.action = 'show-log-details';
             row.dataset.index = String(index);
 

@@ -190,21 +190,21 @@
 
         $$('.nav-link').forEach((el) => {
             el.classList.remove('text-primary', 'font-semibold');
-            el.classList.add('text-gray-600');
+            el.classList.add('text-slate-600', 'font-medium', 'hover:bg-slate-100', 'hover:text-slate-900');
         });
 
         const currentNav = byId(`nav-${tabName}`);
         currentNav?.classList.add('text-primary', 'font-semibold');
-        currentNav?.classList.remove('text-gray-600');
+        currentNav?.classList.remove('text-slate-600', 'font-medium', 'hover:bg-slate-100', 'hover:text-slate-900');
 
         $$('.nav-link-mobile').forEach((el) => {
             el.classList.remove('text-primary', 'bg-blue-50');
-            el.classList.add('text-gray-700');
+            el.classList.add('text-slate-700', 'hover:bg-slate-50');
         });
 
         const currentMobileNav = byId(`nav-${tabName}-mobile`);
         currentMobileNav?.classList.add('text-primary', 'bg-blue-50');
-        currentMobileNav?.classList.remove('text-gray-700');
+        currentMobileNav?.classList.remove('text-slate-700', 'hover:bg-slate-50');
 
         if (tabName === 'dashboard') {
             await Promise.allSettled([

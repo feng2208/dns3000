@@ -15,8 +15,8 @@ func NewRewriteEngine(rewrites []config.Rewrite) *RewriteEngine {
 }
 
 // Match returns the rewrite rule (value) if found.
-// Returns empty string if no match.
-func (e *RewriteEngine) Match(domain string) string {
+// Returns nil if no match.
+func (e *RewriteEngine) Match(domain string) *config.Rewrite {
 	// Exact match priority? Or first match?
 	// "rewrites: - name: example.com"
 
@@ -26,18 +26,18 @@ func (e *RewriteEngine) Match(domain string) string {
 	for _, r := range e.Rewrites {
 		pattern := r.Name
 		if pattern == domain {
-			return r.Value
+			return &r
 		}
 
 		if strings.HasPrefix(pattern, "*.") {
 			suffix := pattern[2:] // remove *.
 			if strings.HasSuffix(domain, "."+suffix) {
 				// e.g. *.example.com matches sub.example.com
-				return r.Value
+				return &r
 			}
 		}
 	}
-	return ""
+	return nil
 }
 
 // IsIP checks if the value is an IP address

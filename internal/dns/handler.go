@@ -166,10 +166,11 @@ func (h *Handler) checkCache(w dns.ResponseWriter, r *dns.Msg, key string, logEn
 }
 
 func (h *Handler) checkRewrites(w dns.ResponseWriter, r *dns.Msg, domain string, q dns.Question, logEntry *logging.QueryLog) bool {
-	rewriteVal := h.RewriteEngine.Match(domain)
-	if rewriteVal == "" {
+	rewriteRule := h.RewriteEngine.Match(domain)
+	if rewriteRule == nil {
 		return false
 	}
+	rewriteVal := rewriteRule.Value
 
 	msg := new(dns.Msg)
 	msg.SetReply(r)
@@ -190,7 +191,8 @@ func (h *Handler) checkRewrites(w dns.ResponseWriter, r *dns.Msg, domain string,
 		w.WriteMsg(msg)
 
 		logEntry.Status = "Rewritten"
-		logEntry.Rule = rewriteVal
+		logEntry.Rule = fmt.Sprintf("%s -> %s", rewriteRule.Name, rewriteRule.Value)
+		logEntry.RuleSource = "DNS 重写"
 		logEntry.Response = summarizeResponse(msg)
 		h.Logger.Log(*logEntry)
 		return true
@@ -210,7 +212,8 @@ func (h *Handler) checkRewrites(w dns.ResponseWriter, r *dns.Msg, domain string,
 		w.WriteMsg(msg)
 
 		logEntry.Status = "Rewritten"
-		logEntry.Rule = rewriteVal
+		logEntry.Rule = fmt.Sprintf("%s -> %s", rewriteRule.Name, rewriteRule.Value)
+		logEntry.RuleSource = "DNS 重写"
 		logEntry.Upstream = upstream
 		logEntry.Response = summarizeResponse(msg)
 		h.Logger.Log(*logEntry)

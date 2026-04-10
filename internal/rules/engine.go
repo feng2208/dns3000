@@ -10,14 +10,14 @@ type Engine struct {
 	mu         sync.RWMutex
 	trie       *Trie
 	regexRules []*Rule
-	hostsRules map[string]string // domain -> ip
+	hostsRules map[string]*Rule // domain -> rule
 }
 
 func NewEngine() *Engine {
 	return &Engine{
 		trie:       NewTrie(),
 		regexRules: make([]*Rule, 0),
-		hostsRules: make(map[string]string),
+		hostsRules: make(map[string]*Rule),
 	}
 }
 
@@ -29,7 +29,7 @@ func (e *Engine) AddRule(r *Rule) {
 	case RuleTypeDomain:
 		e.trie.Insert(r)
 	case RuleTypeHosts:
-		e.hostsRules[r.Pattern] = r.IP
+		e.hostsRules[r.Pattern] = r
 	case RuleTypeRegex:
 		e.regexRules = append(e.regexRules, r)
 	}
@@ -69,8 +69,8 @@ func (e *Engine) Match(domain string, info RequestInfo) *Rule {
 	domain = strings.TrimSuffix(domain, ".")
 
 	// 1. Check Hosts (Exact)
-	if ip, ok := e.hostsRules[domain]; ok {
-		return &Rule{Type: RuleTypeHosts, Pattern: domain, IP: ip}
+	if r, ok := e.hostsRules[domain]; ok {
+		return r
 	}
 
 	// 2. Collect Candidates

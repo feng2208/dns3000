@@ -282,35 +282,60 @@ func (h *Handler) handleBlock(w dns.ResponseWriter, r *dns.Msg, rule *rules.Rule
 
 func (h *Handler) resolveUpstream(w dns.ResponseWriter, r *dns.Msg, domain, key string, logEntry *logging.QueryLog) {
 	start := time.Now()
+
+	defer func() {
+		logEntry.LatencyMs = float64(time.Since(start).Milliseconds())
+		h.Logger.Log(*logEntry)
+	}()
+
 	targetUpstreams := h.getUpstreams(domain)
 	resp, upstream, err := ForwardToUpstream(r, targetUpstreams)
 
-	if err == nil && resp != nil {
-		resp.Compress = true
-		minTTL := uint32(1800)
-		if len(resp.Answer) > 0 {
-			minTTL = resp.Answer[0].Header().Ttl
-			for _, rr := range resp.Answer {
-				if rr.Header().Ttl < minTTL {
-					minTTL = rr.Header().Ttl
-				}
-			}
-		}
-		h.Cache.Set(key, resp, time.Duration(minTTL)*time.Second, "Allowed")
-		w.WriteMsg(resp)
-
-		logEntry.Status = "Allowed"
-		logEntry.LatencyMs = float64(time.Since(start).Milliseconds())
-		logEntry.Upstream = upstream
-		logEntry.Response = summarizeResponse(resp)
-		h.Logger.Log(*logEntry)
+	if err != nil || resp == nil {
+		dns.HandleFailed(w, r)
+		logEntry.Status = "Failed"
+		logEntry.Response = "Failed"
 		return
 	}
 
-	dns.HandleFailed(w, r)
-	logEntry.Status = "Failed"
-	logEntry.Response = "Failed"
-	h.Logger.Log(*logEntry)
+	resp.Compress = true
+	logEntry.Upstream = upstream
+	logEntry.Response = summarizeResponse(resp)
+
+	if resp.Rcode != dns.RcodeSuccess && resp.Rcode != dns.RcodeNameError {
+		w.WriteMsg(resp)
+		logEntry.Status = "Failed"
+		return
+	}
+
+	minTTL := extractMinTTL(resp)
+	h.Cache.Set(key, resp, time.Duration(minTTL)*time.Second, "Allowed")
+	w.WriteMsg(resp)
+	logEntry.Status = "Allowed"
+}
+
+func extractMinTTL(msg *dns.Msg) uint32 {
+	if len(msg.Answer) > 0 {
+		minTTL := msg.Answer[0].Header().Ttl
+		for _, rr := range msg.Answer[1:] {
+			if rr.Header().Ttl < minTTL {
+				minTTL = rr.Header().Ttl
+			}
+		}
+		return minTTL
+	}
+
+	if len(msg.Ns) > 0 {
+		minTTL := msg.Ns[0].Header().Ttl
+		for _, rr := range msg.Ns[1:] {
+			if rr.Header().Ttl < minTTL {
+				minTTL = rr.Header().Ttl
+			}
+		}
+		return minTTL
+	}
+
+	return 300
 }
 
 func summarizeResponse(msg *dns.Msg) string {

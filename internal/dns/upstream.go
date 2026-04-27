@@ -75,7 +75,11 @@ func exchange(ctx context.Context, req *dns.Msg, upstream string) (*dns.Msg, err
 
 	// Default UDP
 	client := new(dns.Client)
-	// client.Net = "udp" // Default
+	if dl, ok := ctx.Deadline(); ok {
+		client.Timeout = time.Until(dl)
+	} else {
+		client.Timeout = 5 * time.Second
+	}
 	// Use ExchangeContext if available in this version of miekg/dns?
 	// It is `ExchangeContext`.
 

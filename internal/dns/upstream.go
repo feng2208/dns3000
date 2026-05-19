@@ -37,10 +37,7 @@ func ForwardToUpstream(req *dns.Msg, servers []string) (*dns.Msg, string, error)
 	for _, s := range servers {
 		go func(upstream string) {
 			msg, err := exchange(ctx, req, upstream)
-			select {
-			case resCh <- result{msg, err, upstream}:
-			case <-ctx.Done():
-			}
+			resCh <- result{msg, err, upstream}
 		}(s)
 	}
 

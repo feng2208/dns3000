@@ -66,9 +66,6 @@ func (h *Handler) ServeDNS(w dns.ResponseWriter, r *dns.Msg) {
 }
 
 func (h *Handler) Resolve(w dns.ResponseWriter, r *dns.Msg, ctx RequestContext) {
-	h.mu.RLock()
-	defer h.mu.RUnlock()
-
 	if len(r.Question) == 0 {
 		dns.HandleFailed(w, r)
 		return
@@ -166,7 +163,11 @@ func (h *Handler) checkCache(w dns.ResponseWriter, r *dns.Msg, key string, logEn
 }
 
 func (h *Handler) checkRewrites(w dns.ResponseWriter, r *dns.Msg, domain string, q dns.Question, logEntry *logging.QueryLog) bool {
-	rewriteRule := h.RewriteEngine.Match(domain)
+	h.mu.RLock()
+	rewriteEngine := h.RewriteEngine
+	h.mu.RUnlock()
+
+	rewriteRule := rewriteEngine.Match(domain)
 	if rewriteRule == nil {
 		return false
 	}
@@ -380,6 +381,9 @@ func summarizeResponse(msg *dns.Msg) string {
 }
 
 func (h *Handler) getUpstreams(domain string) []string {
+	h.mu.RLock()
+	defer h.mu.RUnlock()
+
 	var targetUpstreams []string
 	var longestMatch string
 	for d, ups := range h.UpstreamRoutes.DomainRoutes {
